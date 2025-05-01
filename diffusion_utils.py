@@ -62,7 +62,7 @@ def vis_inpaint_strategy(vis=False):
 		print(f"An error occurred: {e}")
 
 
-def fix_inpaint_mask(mask, contour_color=(0, 255, 0), fill_color=(0, 0, 0)):
+def fix_inpaint_mask(mask, contour_color=(0, 255, 0), fill_color=(0, 0, 0),extend_amount=100):
     mask_copy = mask.copy()
     if mask_copy.dtype != np.uint8:
     
@@ -72,7 +72,13 @@ def fix_inpaint_mask(mask, contour_color=(0, 255, 0), fill_color=(0, 0, 0)):
     inverted = cv2.bitwise_not(mask_copy)
     contours, _ = cv2.findContours(inverted, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
-    cv2.drawContours(mask_copy, contours, -1, 0 , -1) 
+    cv2.drawContours(mask_copy, contours, -1, 0 , -1)
+    # Now extend the mask into black regions
+    if extend_amount > 0:
+        kernel = np.ones((extend_amount, extend_amount), np.uint8)
+        mask_copy = cv2.dilate(mask_copy, kernel, iterations=1)
+    
+    return mask_copy 
 
     return mask_copy
 
