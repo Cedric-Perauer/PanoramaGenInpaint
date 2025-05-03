@@ -77,10 +77,16 @@ def fix_inpaint_mask(mask, contour_color=(0, 255, 0), fill_color=(0, 0, 0),exten
     if extend_amount > 0:
         kernel = np.ones((extend_amount, extend_amount), np.uint8)
         mask_copy = cv2.dilate(mask_copy, kernel, iterations=1)
+        
+    blur_amount = 20
+    if blur_amount > 0:
+        mask_copy = cv2.GaussianBlur(mask_copy, (blur_amount*2+1, blur_amount*2+1), 0)
+        # Normalize back to proper range
+        mask_copy = mask_copy.astype(np.float32) / 255.0
+    
+    return mask_copy
     
     return mask_copy 
-
-    return mask_copy
 
 def load_pipeline(four_bit=False):
 	orig_pipeline = DiffusionPipeline.from_pretrained("black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16)
