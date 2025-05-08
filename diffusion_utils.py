@@ -5,6 +5,7 @@ from utils import *
 import numpy as np
 import copy
 from image_utils import visualize_all_inpainting_masks
+from diffusers import AutoPipelineForInpainting
 
 IMAGE_SIZE = 1024
 
@@ -104,7 +105,12 @@ def load_pipeline(four_bit=False):
 	pipeline.enable_model_cpu_offload()
 	return pipeline
 
-def generate_outpaint(pipe,image, mask,vis=False,use_flux=False,prompt='a city town square'):
+def load_sdxl_pipeline(four_bit=False):
+        pipe = AutoPipelineForInpainting.from_pretrained("diffusers/stable-diffusion-xl-1.0-inpainting-0.1", torch_dtype=torch.float16, variant="fp16").to("cuda")
+        return pipe 
+
+
+def generate_outpaint(pipe,image, mask,vis=False,use_flux=False,num_steps=50,prompt='a city town square'):
 	if use_flux:
 		image = pipe(
 			prompt=prompt,
@@ -113,7 +119,7 @@ def generate_outpaint(pipe,image, mask,vis=False,use_flux=False,prompt='a city t
 			height=IMAGE_SIZE,
 			width=IMAGE_SIZE,
 			guidance_scale=30,
-			num_inference_steps=50,
+			num_inference_steps=num_steps,
 			max_sequence_length=512,
 			generator=torch.Generator("cpu").manual_seed(0)
 		).images[0]
