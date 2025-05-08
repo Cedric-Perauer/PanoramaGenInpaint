@@ -5,9 +5,71 @@ from utils import *
 import numpy as np
 import copy
 from image_utils import visualize_all_inpainting_masks
-from diffusers import AutoPipelineForInpainting
 
 IMAGE_SIZE = 1024
+
+def composite_with_mask(destination, source, mask=None, resize_source=True, resize_mode='bilinear'):
+    """
+    Composite source onto destination using mask:
+    - Where mask=0: keep destination
+    - Where mask=1: use source
+    """
+    device = destination.device
+    destination = destination.permute(0, 3, 1, 2)  # Change to (batch_size, height, width, channels)
+    source = source.permute(0, 3, 1, 2)  # Change to (batch_size, height, width, channels)
+    batch_size, channels, dest_height, dest_width = destination.shape
+    
+    # Create a copy of the destination with float type for operations
+    result = destination.clone().float()
+
+    # Process source to match destination size if needed
+    source_slice = source.to(device).float()
+    
+    if resize_source:
+        source_slice = torch.nn.functional.interpolate(
+            source_slice, 
+            size=(dest_height, dest_width), 
+            mode=resize_mode
+        )
+    
+    # Process mask
+    if mask is None:
+        mask_slice = torch.ones((batch_size, 1, dest_height, dest_width), device=device)
+    else:
+        mask_slice = mask.to(device).float()
+        
+        if mask_slice.ndim == 3:
+            mask_slice = mask_slice.unsqueeze(1)
+            
+        if mask_slice.shape[-2:] != (dest_height, dest_width):
+            mask_slice = torch.nn.functional.interpolate(
+                mask_slice, 
+                size=(dest_height, dest_width), 
+                mode=resize_mode
+            )
+    
+    # Ensure mask is in [0,1] range
+    if mask_slice.max() > 1.0:
+        mask_slice = mask_slice / 255.0
+    
+    # If mask has only one channel but source has multiple, expand mask
+    if mask_slice.shape[1] == 1 and source_slice.shape[1] > 1:
+        mask_slice = mask_slice.expand(-1, channels, -1, -1)
+    
+    # Debug info
+    print(f"Mask min: {mask_slice.min().item()}, max: {mask_slice.max().item()}")
+    
+    # Apply the compositing directly to the entire image:
+    # - Where mask is 0: keep destination (result)
+    # - Where mask is 1: use source
+    result = result * (1 - mask_slice) + source_slice * mask_slice
+    
+    # Free up memory
+    del source_slice, mask_slice
+    torch.cuda.empty_cache()
+
+    # Return result in the same dtype as the input
+    return result.to(destination.dtype).permute(0, 2, 3, 1)  # Change back to (batch_size, height, width, channels)
 
 def vis_inpaint_strategy(vis=False):
 	try:
@@ -105,9 +167,6 @@ def load_pipeline(four_bit=False):
 	pipeline.enable_model_cpu_offload()
 	return pipeline
 
-def load_sdxl_pipeline(four_bit=False):
-        pipe = AutoPipelineForInpainting.from_pretrained("diffusers/stable-diffusion-xl-1.0-inpainting-0.1", torch_dtype=torch.float16, variant="fp16").to("cuda")
-        return pipe 
 
 
 def generate_outpaint(pipe,image, mask,vis=False,use_flux=False,num_steps=50,prompt='a city town square'):

@@ -1,11 +1,10 @@
 import os
-import numpy as np
 import cv2
 import numpy as np
 import math
 from PIL import Image
 import matplotlib.pyplot as plt
-
+import torch 
 
 
 def focal_to_fov(focal_length, sensor_dimension):
