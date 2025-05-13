@@ -25,7 +25,8 @@ pipe = FluxControlNetInpaintingPipeline.from_pretrained(
     controlnet=controlnet,
     transformer=transformer,
     torch_dtype=torch.bfloat16
-).to("cpu")
+)
+
 
 
 pipe.enable_model_cpu_offload()
@@ -56,3 +57,23 @@ result = pipe(
 
 result.save('flux_inpaint.png')
 print("Successfully inpaint image")
+
+import numpy as np
+mask_np = np.array(mask.convert("L"))
+mask_binary = mask_np > 128  # Create binary mask (True where mask is white)
+
+# Convert images to numpy arrays
+original_np = np.array(image)
+result_np = np.array(result)
+
+# Combine images: use original image and replace only the masked area with the result
+combined_np = original_np.copy()
+combined_np[mask_binary] = result_np[mask_binary]
+
+# Convert back to PIL Image
+combined_result = Image.fromarray(combined_np)
+
+# Save both the raw inpainting result and the combined result
+result.save('flux_inpaint_full.png')
+combined_result.save('flux_inpaint_combined.png')
+print("Successfully inpainted image and combined with original using mask")
