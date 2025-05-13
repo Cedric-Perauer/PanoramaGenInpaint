@@ -36,7 +36,7 @@ pipe.controlnet.to(torch.bfloat16)
 
 
 # Load image and mask
-size = (1024, 1024)
+size = (768, 768)
 image = Image.open(image_path).convert("RGB").resize(size)
 mask = Image.open(mask_path).convert("L").resize(size)
 
