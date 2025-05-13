@@ -235,7 +235,7 @@ class FluxControlNetInpaintingPipeline(DiffusionPipeline, FluxLoraLoaderMixin):
         device: Optional[torch.device] = None,
         dtype: Optional[torch.dtype] = None,
     ):
-        device = device or self._execution_device
+        device = device
         dtype = dtype or self.text_encoder.dtype
 
         prompt = [prompt] if isinstance(prompt, str) else prompt
@@ -289,7 +289,7 @@ class FluxControlNetInpaintingPipeline(DiffusionPipeline, FluxLoraLoaderMixin):
         num_images_per_prompt: int = 1,
         device: Optional[torch.device] = None,
     ):
-        device = device or self._execution_device
+        device = device
 
         prompt = [prompt] if isinstance(prompt, str) else prompt
         batch_size = len(prompt)
@@ -377,7 +377,7 @@ class FluxControlNetInpaintingPipeline(DiffusionPipeline, FluxLoraLoaderMixin):
             lora_scale (`float`, *optional*):
                 A lora scale that will be applied to all LoRA layers of the text encoder if LoRA layers are loaded.
         """
-        device = device or self._execution_device
+        device = device 
 
         # set lora scale so that monkey patched LoRA
         # function of text encoder can correctly access it
@@ -822,6 +822,7 @@ class FluxControlNetInpaintingPipeline(DiffusionPipeline, FluxLoraLoaderMixin):
         width = width or self.default_sample_size * self.vae_scale_factor
 
         # 1. Check inputs. Raise error if not correct
+        print("Check inputs")
         self.check_inputs(
             prompt,
             prompt_2,
@@ -845,7 +846,7 @@ class FluxControlNetInpaintingPipeline(DiffusionPipeline, FluxLoraLoaderMixin):
         else:
             batch_size = prompt_embeds.shape[0]
 
-        device = self._execution_device
+        device = torch.device('cuda')
         dtype = self.transformer.dtype
 
         lora_scale = (
@@ -935,6 +936,7 @@ class FluxControlNetInpaintingPipeline(DiffusionPipeline, FluxLoraLoaderMixin):
         self._num_timesteps = len(timesteps)
 
         # 6. Denoising loop
+        print("Start denoise")
         with self.progress_bar(total=num_inference_steps) as progress_bar:
             for i, t in enumerate(timesteps):
                 if self.interrupt:

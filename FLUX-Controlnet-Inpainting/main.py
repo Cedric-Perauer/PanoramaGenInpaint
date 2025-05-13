@@ -4,12 +4,13 @@ from controlnet_flux import FluxControlNetModel
 from transformer_flux import FluxTransformer2DModel
 from pipeline_flux_controlnet_inpaint import FluxControlNetInpaintingPipeline
 from torchao.quantization import quantize_, int8_weight_only
+from PIL import Image
 
 check_min_version("0.30.2")
 
 # Set image path , mask path and prompt
-image_path='https://huggingface.co/alimama-creative/FLUX.1-dev-Controlnet-Inpainting-Alpha/resolve/main/images/bucket.png',
-mask_path='https://huggingface.co/alimama-creative/FLUX.1-dev-Controlnet-Inpainting-Alpha/resolve/main/images/bucket_mask.jpeg',
+image_path='bucket.png'
+mask_path='bucket_mask.jpeg'
 prompt='a person wearing a white shoe, carrying a white bucket with text "FLUX" on it'
 
 # Build pipeline
@@ -24,17 +25,19 @@ pipe = FluxControlNetInpaintingPipeline.from_pretrained(
     controlnet=controlnet,
     transformer=transformer,
     torch_dtype=torch.bfloat16
-).to("cuda")
+).to("cpu")
 
-pipe.enable_cpu_offload()
+
+pipe.enable_model_cpu_offload()
 pipe.transformer.to(torch.bfloat16)
 pipe.controlnet.to(torch.bfloat16)
 
+
 # Load image and mask
 size = (768, 768)
-image = load_image(image_path).convert("RGB").resize(size)
-mask = load_image(mask_path).convert("RGB").resize(size)
-generator = torch.Generator(device="cuda").manual_seed(24)
+image = Image.open(image_path).convert("RGB").resize(size)
+mask = Image.open(mask_path).convert("RGB").resize(size)
+generator = torch.Generator(device="cpu").manual_seed(24)
 
 # Inpaint
 result = pipe(
