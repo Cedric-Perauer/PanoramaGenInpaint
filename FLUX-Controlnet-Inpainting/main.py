@@ -5,13 +5,14 @@ from transformer_flux import FluxTransformer2DModel
 from pipeline_flux_controlnet_inpaint import FluxControlNetInpaintingPipeline
 from torchao.quantization import quantize_, int8_weight_only
 from PIL import Image
+import numpy as np
 
 check_min_version("0.30.2")
 
 # Set image path , mask path and prompt
-image_path='bucket.png'
-mask_path='bucket_mask.jpeg'
-prompt='a person wearing a white shoe, carrying a white bucket with text "FLUX" on it'
+image_path='render.png'
+mask_path='mask_new.png'
+prompt='a city town square'
 
 # Build pipeline
 controlnet = FluxControlNetModel.from_pretrained("alimama-creative/FLUX.1-dev-Controlnet-Inpainting-Alpha", torch_dtype=torch.bfloat16)
@@ -37,9 +38,9 @@ pipe.controlnet.to(torch.bfloat16)
 # Load image and mask
 size = (768, 768)
 image = Image.open(image_path).convert("RGB").resize(size)
-mask = Image.open(mask_path).convert("RGB").resize(size)
-generator = torch.Generator(device="cpu").manual_seed(24)
+mask = Image.open(mask_path).convert("L").resize(size)
 
+generator = torch.Generator(device="cpu").manual_seed(24)
 # Inpaint
 result = pipe(
     prompt=prompt,
@@ -47,7 +48,7 @@ result = pipe(
     width=size[0],
     control_image=image,
     control_mask=mask,
-    num_inference_steps=28,
+    num_inference_steps=100,
     generator=generator,
     controlnet_conditioning_scale=0.9,
     guidance_scale=3.5,
@@ -61,7 +62,6 @@ print("Successfully inpaint image")
 import numpy as np
 mask_np = np.array(mask.convert("L"))
 mask_binary = mask_np > 128  # Create binary mask (True where mask is white)
-
 # Convert images to numpy arrays
 original_np = np.array(image)
 result_np = np.array(result)
