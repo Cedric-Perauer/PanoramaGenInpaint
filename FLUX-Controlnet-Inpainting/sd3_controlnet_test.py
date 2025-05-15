@@ -20,7 +20,7 @@ pipe.controlnet.to(torch.float16)
 #pipe.to("cuda")
 
 image = Image.open("render.png").convert("RGB")
-mask = Image.open("mask_new.png").convert("RGB")
+mask = Image.open("mask_new.png").convert("L")
 
 width = 1024
 height = 1024

@@ -1,9 +1,8 @@
-from diffusers import FluxFillPipeline, FluxPipeline,DiffusionPipeline, FluxFillPipeline, FluxTransformer2DModel
+from diffusers import DiffusionPipeline
 import torch 
 from transformers import T5EncoderModel
 from utils import *
 import numpy as np
-import copy
 from image_utils import visualize_all_inpainting_masks
 
 IMAGE_SIZE = 1024
@@ -54,7 +53,7 @@ def composite_with_mask(destination, source, mask=None, resize_source=True, resi
     
     # If mask has only one channel but source has multiple, expand mask
     if mask_slice.shape[1] == 1 and source_slice.shape[1] > 1:
-        mask_slice = mask_slice.expand(-1, channels, -1, -1)
+        mask_slice = mask_slice.expand(-1, channels, -1, -2)
     
     # Debug info
     print(f"Mask min: {mask_slice.min().item()}, max: {mask_slice.max().item()}")
@@ -145,27 +144,53 @@ def fix_inpaint_mask(mask, contour_color=(0, 255, 0), fill_color=(0, 0, 0),exten
     if blur_amount > 0:
         mask_copy = cv2.GaussianBlur(mask_copy, (blur_amount*2+1, blur_amount*2+1), 0)
         # Normalize back to proper range
-        mask_copy = mask_copy.astype(np.float32) / 255.0
     
-    return mask_copy
-    
-    return mask_copy 
+    return mask_copy    
 
 def load_pipeline(four_bit=False):
+	from diffusers import FluxTransformer2DModel,FluxFillPipeline
 	orig_pipeline = DiffusionPipeline.from_pretrained("black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16)
-	print("Using four bit.")
+	
 	transformer = FluxTransformer2DModel.from_pretrained(
 		"sayakpaul/FLUX.1-Fill-dev-nf4", subfolder="transformer", torch_dtype=torch.bfloat16
 	)
+	
 	text_encoder_2 = T5EncoderModel.from_pretrained(
 		"sayakpaul/FLUX.1-Fill-dev-nf4", subfolder="text_encoder_2", torch_dtype=torch.bfloat16
 	)
+	
 	pipeline = FluxFillPipeline.from_pipe(
 		orig_pipeline, transformer=transformer, text_encoder_2=text_encoder_2, torch_dtype=torch.bfloat16
 	)
 
 	pipeline.enable_model_cpu_offload()
 	return pipeline
+
+def load_contolnet_pipeline():
+	import sys 
+	sys.path.append('../FLUX-Controlnet-Inpainting')
+	from diffusers.utils import load_image, check_min_version
+	from controlnet_flux import FluxControlNetModel
+	from transformer_flux import FluxTransformer2DModel
+	from pipeline_flux_controlnet_inpaint import FluxControlNetInpaintingPipeline
+	from torchao.quantization import quantize_, int8_weight_only
+
+	controlnet = FluxControlNetModel.from_pretrained("alimama-creative/FLUX.1-dev-Controlnet-Inpainting-Alpha", torch_dtype=torch.bfloat16)
+	transformer = FluxTransformer2DModel.from_pretrained(
+			"black-forest-labs/FLUX.1-dev", subfolder='transformer', torch_dtype=torch.bfloat16)
+	
+	quantize_(transformer, int8_weight_only())
+	quantize_(controlnet, int8_weight_only())
+	pipe = FluxControlNetInpaintingPipeline.from_pretrained(
+		"black-forest-labs/FLUX.1-dev",
+		controlnet=controlnet,
+		transformer=transformer,
+		torch_dtype=torch.bfloat16
+	)
+	pipe.enable_model_cpu_offload()
+	pipe.transformer.to(torch.bfloat16)
+	pipe.controlnet.to(torch.bfloat16)
+	return pipe 
 
 
 
@@ -195,6 +220,30 @@ def generate_outpaint(pipe,image, mask,vis=False,use_flux=False,num_steps=50,pro
 	if vis:
 		show_image_cv2(pil_to_cv2(image))
 	return image
+
+def outpaint_controlnet(pipe,image, mask,vis=False,num_steps=50,prompt='a city town square'):
+	generator = torch.Generator(device="cpu").manual_seed(24)
+	# Inpaint
+	size = (768, 768)
+	result = pipe(
+		prompt=prompt,
+		height=size[1],
+		width=size[0],
+		control_image=image,
+		control_mask=mask,
+		num_inference_steps=num_steps,
+		generator=generator,
+		controlnet_conditioning_scale=0.9,
+		guidance_scale=3.5,
+		negative_prompt="",
+		true_guidance_scale=1.0 # default: 3.5 for alpha and 1.0 for beta
+	).images[0]
+	if vis:
+		print("Inpainting done")
+		show_image_cv2(pil_to_cv2(result))
+
+	return result
+
 
 
 def fix_mask(image,source_image,fill_shape,offset,fill_size,left,pipe,vis=False):
