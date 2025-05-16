@@ -166,7 +166,7 @@ def load_pipeline(four_bit=False):
 	pipeline.enable_model_cpu_offload()
 	return pipeline
 
-def load_contolnet_pipeline():
+def load_contolnet_pipeline(alpha=False):
 	import sys 
 	sys.path.append('../FLUX-Controlnet-Inpainting')
 	from diffusers.utils import load_image, check_min_version
@@ -174,8 +174,13 @@ def load_contolnet_pipeline():
 	from transformer_flux import FluxTransformer2DModel
 	from pipeline_flux_controlnet_inpaint import FluxControlNetInpaintingPipeline
 	from torchao.quantization import quantize_, int8_weight_only
+    
+    if alpha :
+         weights = "alimama-creative/FLUX.1-dev-Controlnet-Inpainting-Alpha"
+    else :
+         weights = "alimama-creative/FLUX.1-dev-Controlnet-Inpainting-Beta"
 
-	controlnet = FluxControlNetModel.from_pretrained("alimama-creative/FLUX.1-dev-Controlnet-Inpainting-Alpha", torch_dtype=torch.bfloat16)
+	controlnet = FluxControlNetModel.from_pretrained(weights, torch_dtype=torch.bfloat16)
 	transformer = FluxTransformer2DModel.from_pretrained(
 			"black-forest-labs/FLUX.1-dev", subfolder='transformer', torch_dtype=torch.bfloat16)
 	
