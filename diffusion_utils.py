@@ -72,8 +72,8 @@ def composite_with_mask(destination, source, mask=None, resize_source=True, resi
 
 def vis_inpaint_strategy(vis=False):
 	try:
-		initial_pano_pil = Image.open("initial_pano_with_back.png")
-		side_pano = Image.open("initial_pano_center.png")
+		initial_pano_pil = Image.open("imgs/initial_pano_with_back.png")
+		side_pano = Image.open("imgs/initial_pano_center.png")
 		initial_pano_np = np.array(initial_pano_pil)
 		side_pano_np = np.array(side_pano)
 
