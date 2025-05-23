@@ -144,7 +144,7 @@ def fix_inpaint_mask(mask, contour_color=(0, 255, 0), fill_color=(0, 0, 0),exten
     if blur_amount > 0:
         mask_copy = cv2.GaussianBlur(mask_copy, (blur_amount*2+1, blur_amount*2+1), 0)
         # Normalize back to proper range
-    
+     
     return mask_copy    
 
 def load_pipeline(four_bit=False):
