@@ -72,8 +72,8 @@ def composite_with_mask(destination, source, mask=None, resize_source=True, resi
 
 def vis_inpaint_strategy(vis=False):
 	try:
-		initial_pano_pil = Image.open("initial_pano_with_back.png")
-		side_pano = Image.open("initial_pano_center.png")
+		initial_pano_pil = Image.open("imgs/initial_pano_with_back.png")
+		side_pano = Image.open("imgs/initial_pano_center.png")
 		initial_pano_np = np.array(initial_pano_pil)
 		side_pano_np = np.array(side_pano)
 
@@ -144,7 +144,7 @@ def fix_inpaint_mask(mask, contour_color=(0, 255, 0), fill_color=(0, 0, 0),exten
     if blur_amount > 0:
         mask_copy = cv2.GaussianBlur(mask_copy, (blur_amount*2+1, blur_amount*2+1), 0)
         # Normalize back to proper range
-    
+     
     return mask_copy    
 
 def load_pipeline(four_bit=False):
@@ -226,7 +226,7 @@ def generate_outpaint(pipe,image, mask,vis=False,use_flux=False,num_steps=50,pro
 		show_image_cv2(pil_to_cv2(image))
 	return image
 
-def outpaint_controlnet(pipe,image, mask,vis=False,num_steps=50,prompt='a city town square'):
+def outpaint_controlnet(pipe,image, mask,vis=False,num_steps=50,prompt='a city town square',cond_scale=0.9,guidance_scale=3.5):
 	generator = torch.Generator(device="cpu").manual_seed(24)
 	# Inpaint
 	size = (768, 768)
@@ -238,8 +238,8 @@ def outpaint_controlnet(pipe,image, mask,vis=False,num_steps=50,prompt='a city t
 		control_mask=mask,
 		num_inference_steps=num_steps,
 		generator=generator,
-		controlnet_conditioning_scale=0.9,
-		guidance_scale=3.5,
+		controlnet_conditioning_scale=cond_scale,
+		guidance_scale=guidance_scale,
 		negative_prompt="",
 		true_guidance_scale=1.0 # default: 3.5 for alpha and 1.0 for beta
 	).images[0]

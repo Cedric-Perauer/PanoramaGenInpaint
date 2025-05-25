@@ -4,4 +4,13 @@ __pycache__/
 *.zip 
 *.png 
 *.jpg
-
+*.bin 
+*.pt 
+*.ckpt 
+*.pth 
+build/
+src/
+*.pth
+weights/
+weight/
+vae/ 
