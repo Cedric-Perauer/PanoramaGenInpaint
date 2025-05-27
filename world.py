@@ -62,14 +62,15 @@ def load_contolnet_pipeline():
 	pipe.enable_model_cpu_offload()
 	pipe.transformer.to(torch.bfloat16)
 	pipe.controlnet.to(torch.bfloat16)
-	return pipe, controlnet, transformer
+    
+	return pipe
 
 
 top_and_bottom_views = [all_views_data[0],all_views_data[3]]
 side_views = all_views_data[6:]
 clear_gpu_memory()
 
-pipeline, controlnet, transformer = load_contolnet_pipeline()
+pipeline = load_contolnet_pipeline()
  
 '''
 for view in top_and_bottom_views[:2] :
@@ -129,8 +130,6 @@ for view in top_and_bottom_views :
     else : 
         prompt = 'Sky of a city town square, no buildings'
     
-    
-	
     print(f"Render image shape: {render_img.size}{mask.shape}")
     #image = Image.open('top1.png')
     image = generate_outpaint(pipeline, render_img, new_mask,vis=True,prompt=prompt)
@@ -143,7 +142,7 @@ for view in top_and_bottom_views :
         pitch_deg=view['pitch'],
         h_fov_deg=view['fov'], 
         v_fov_deg=view['fov'],
-        mask=None,  # Original mask - only project where we outpainted
+        mask=None,  # Original mask - only project where we outpainted,
         mirror=False
     )
 
@@ -157,7 +156,7 @@ for view in top_and_bottom_views :
 '''
 side_view_pano = Image.open("imgs/initial_pano_center.png")
 side_view_pano_np = np.array(side_view_pano)
-for idx,view in enumerate(side_views[:2]):
+for idx,view in enumerate(side_views):
     show_image_cv2(cv2.cvtColor(initial_pano_np, cv2.COLOR_BGR2RGB))
     render_img = render_perspective(
                 side_view_pano_np, view['yaw'], -view['pitch'], view['fov'], view['vfov'], output_size
@@ -169,70 +168,29 @@ for idx,view in enumerate(side_views[:2]):
     new_mask = Image.fromarray(new_mask).convert("L")
     new_mask.save(f"new_mask_{idx}.png")
     render_img = Image.fromarray(render_img).convert("RGB")
-
     show_image_cv2(pil_to_cv2(new_mask))
-    
     prompt = 'a different house on a market square'      
     
     print(f"Render image shape: {render_img.size}{mask.shape}")
     #image = Image.open('top1.png')
+    render_img.save(f"imgs/render_input_{idx}.png")
     image = outpaint_controlnet(pipeline, render_img, new_mask,vis=True,prompt=prompt,num_steps=30,guidance_scale=3.5,cond_scale=0.4)
     image = image.resize((1024, 1024), Image.LANCZOS)
-    image.save(f"imgs/render.png")
+    image.save(f"imgs/render_{idx}.png")
     
-    # Aggressive GPU memory clearing
-    if torch.cuda.is_available():
-        # Move pipeline and all its components to CPU
-        try:
-            pipeline.to("cpu")
-            if hasattr(pipeline, 'controlnet'):
-                pipeline.controlnet.to("cpu")
-            if hasattr(pipeline, 'transformer'):
-                pipeline.transformer.to("cpu")
-            if hasattr(pipeline, 'unet'):
-                pipeline.unet.to("cpu")
-            if hasattr(pipeline, 'vae'):
-                pipeline.vae.to("cpu")
-        except:
-            pass
-            
-        # Clear all CUDA caches and memory
-        torch.cuda.empty_cache()
-        torch.cuda.reset_max_memory_allocated()
-        torch.cuda.reset_peak_memory_stats()
-        torch.cuda.synchronize()
-        
-        # Force CUDA to release memory
-        torch.cuda.set_per_process_memory_fraction(0.0)
-        torch.cuda.set_per_process_memory_fraction(1.0)
-    
-    # Clear Python garbage collection multiple times
-    import gc
-    gc.collect()
-    gc.collect()
-    gc.collect()
-    
-    # Delete all possible references
-    try:
-        del pipeline
-        del render_img
-        del controlnet
-        del transformer
-        del new_mask
-        del image
-    except:
-        pass
-        
     clear_gpu_memory()
-    breakpoint()
-    run_with_conda_env('diffusers33', 'refiner.py imgs/render.png')
-    image = Image.open("refined_output.png")
-    
-
+    #if idx == 0 : 
+    run_with_conda_env('diffusers33', f'refiner.py imgs/render_{idx}.png --output_path imgs/refined_output_{idx}.png')
+    image = Image.open(f"imgs/refined_output_{idx}.png")
+    #else : 
+    #    image = Image.open(f"imgs/render_{idx}.png")
+        
     new_mask = np.array(new_mask)
     #image = generate_outpaint(pipeline, image, np.ones_like(new_mask),vis=True,num_steps=20,prompt=prompt)
     #image = Image.open("outpainted_test.png")
     cur_mask = new_mask 
+    if idx == 0 : 
+        cur_mask = None
     initial_pano_np = project_perspective_to_equirect(
         cv2.cvtColor(pil_to_cv2(image),cv2.COLOR_BGR2RGB), 
         initial_pano_np,
@@ -240,7 +198,7 @@ for idx,view in enumerate(side_views[:2]):
         pitch_deg=view['pitch'],
         h_fov_deg=view['fov'], 
         v_fov_deg=view['fov'],
-        mask=new_mask,  # Original mask - only project where we outpainted,
+        mask=cur_mask,  # Original mask - only project where we outpainted,
         mirror=False
     )
     
@@ -251,16 +209,15 @@ for idx,view in enumerate(side_views[:2]):
         pitch_deg=view['pitch'],
         h_fov_deg=view['fov'], 
         v_fov_deg=view['fov'],
-        mask=new_mask,  # Original mask - only project where we outpainted,
+        mask=cur_mask,  # Original mask - only project where we outpainted,
         mirror=False
     )
+    
+    cur_pano = cv2.cvtColor(initial_pano_np, cv2.COLOR_BGR2RGB)
+    cv2.imwrite(f"imgs/cur_pano_{idx}.png", cur_pano)   
+    
 
-    # Visualize the updated panorama
-    plt.figure(figsize=(20, 10))
-    plt.imshow(initial_pano_np)
-    plt.title(f"Panorama after outpainting {view['label']}")
-    plt.axis('off')
-    plt.show()
+    
 
 '''
 for idx,view in enumerate(side_views) : 

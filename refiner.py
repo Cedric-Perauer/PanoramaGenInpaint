@@ -45,10 +45,10 @@ def refine_image(image_path, output_path="refined_output.png"):
     # Refine with parameters
     refined_image = pipe(
         image=noisy_image,
-        strength=0.3,  # Controls noise reduction (0=ignore input, 1=full denoising)
-        num_inference_steps=50,  # More steps → higher quality
+        strength=0.2,  # Controls noise reduction (0=ignore input, 1=full denoising)
+        num_inference_steps=200,  # More steps → higher quality
         guidance_scale=3.5,  # Text prompt relevance (if using)
-        prompt="High-quality clean image",  # Optional text guidance
+        prompt=''
     ).images[0]
     
     refined_image.save(output_path)
@@ -57,6 +57,7 @@ def refine_image(image_path, output_path="refined_output.png"):
 def main():
     parser = argparse.ArgumentParser(description='Refine an image using FLUX model')
     parser.add_argument('image_path', type=str, help='Path to the input image')
+    parser.add_argument('--output_path', type=str, default="refined_output.png", help='Path to save the refined image')
     
     args = parser.parse_args()
     
@@ -66,7 +67,7 @@ def main():
         return
     
     try:
-        refine_image(args.image_path)
+        refine_image(args.image_path, args.output_path)
     except Exception as e:
         print(f"Error during image refinement: {e}")
 
