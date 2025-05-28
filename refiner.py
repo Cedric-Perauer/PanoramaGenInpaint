@@ -46,7 +46,7 @@ def refine_image(image_path, output_path="refined_output.png"):
     refined_image = pipe(
         image=noisy_image,
         strength=0.2,  # Controls noise reduction (0=ignore input, 1=full denoising)
-        num_inference_steps=200,  # More steps → higher quality
+        num_inference_steps=50,  # More steps → higher quality
         guidance_scale=3.5,  # Text prompt relevance (if using)
         prompt=''
     ).images[0]
