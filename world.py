@@ -160,7 +160,7 @@ for view in top_and_bottom_views :
 '''
 side_view_pano = Image.open("imgs/initial_pano_center.png")
 side_view_pano_np = np.array(side_view_pano)
-REFINER = True
+REFINER = True 
 for idx,view in enumerate(tqdm(side_views, desc="Processing side views")):
     show_image_cv2(cv2.cvtColor(initial_pano_np, cv2.COLOR_BGR2RGB))
     render_img = render_perspective(
@@ -170,6 +170,7 @@ for idx,view in enumerate(tqdm(side_views, desc="Processing side views")):
     
     mask = create_mask_from_black(render_img, threshold=10)
     new_mask = fix_inpaint_mask(mask,extend_amount=10)
+    
     new_mask = Image.fromarray(new_mask).convert("L")
     new_mask.save(f"new_mask_{idx}.png")
     render_img = Image.fromarray(render_img).convert("RGB")
@@ -179,28 +180,12 @@ for idx,view in enumerate(tqdm(side_views, desc="Processing side views")):
     print(f"Render image shape: {render_img.size}{mask.shape}")
     #image = Image.open('top1.png')
     render_img.save(f"imgs/render_input_{idx}.png")
-    
-    image = outpaint_controlnet(pipeline, render_img, new_mask,vis=True,prompt=prompt,num_steps=30,guidance_scale=3.5,cond_scale=0.7)
+    cond_scale = 0.6
+    image = outpaint_controlnet(pipeline, render_img, new_mask,vis=True,prompt=prompt,num_steps=28,guidance_scale=3.5,cond_scale=cond_scale)
     image = image.resize((1024, 1024), Image.LANCZOS)
     image.save(f"imgs/render_{idx}.png")
     
-    # Create composite where masked region uses original render_img
-    '''
-    mask_np = np.array(new_mask)
-    mask_np = mask_np.astype(np.float32) / 255.0  # Normalize to 0-1
-    mask_np = np.expand_dims(mask_np, axis=2)  # Add channel dimension
-    mask_np = np.repeat(mask_np, 3, axis=2)  # Repeat for RGB channels
-    
-    render_img_np = np.array(render_img)
-    image_np = np.array(image)
-    
-    # Composite: use original render_img in masked region, outpainted result elsewhere
-    # Note: mask_np is 1 in the masked region, so we need to invert it for the outpainted area
-    composite = image_np * mask_np + render_img_np * (1 - mask_np)
-    composite = Image.fromarray(composite.astype(np.uint8))
-    composite.save(f"imgs/composite_{idx}.png")
-    '''
-    
+
     clear_gpu_memory()
     #if idx == 0 : 
     if REFINER or idx == 0: 
