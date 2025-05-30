@@ -71,7 +71,7 @@ top_and_bottom_views = [all_views_data[0],all_views_data[3]]
 side_views = all_views_data[6:]
 side_view_left = side_views[5]
 
-side_views = side_views[:2] + [side_view_left]
+
 clear_gpu_memory()
 
 pipeline = load_contolnet_pipeline()
@@ -160,7 +160,7 @@ for view in top_and_bottom_views :
 '''
 side_view_pano = Image.open("imgs/initial_pano_center.png")
 side_view_pano_np = np.array(side_view_pano)
-REFINER = True 
+REFINER = False 
 for idx,view in enumerate(tqdm(side_views, desc="Processing side views")):
     show_image_cv2(cv2.cvtColor(initial_pano_np, cv2.COLOR_BGR2RGB))
     render_img = render_perspective(
@@ -169,7 +169,7 @@ for idx,view in enumerate(tqdm(side_views, desc="Processing side views")):
     show_image_cv2(cv2.cvtColor(render_img, cv2.COLOR_BGR2RGB))
     
     mask = create_mask_from_black(render_img, threshold=10)
-    new_mask = fix_inpaint_mask(mask,extend_amount=10)
+    new_mask = fix_inpaint_mask(mask,extend_amount=100)
     
     new_mask = Image.fromarray(new_mask).convert("L")
     new_mask.save(f"new_mask_{idx}.png")
@@ -180,7 +180,7 @@ for idx,view in enumerate(tqdm(side_views, desc="Processing side views")):
     print(f"Render image shape: {render_img.size}{mask.shape}")
     #image = Image.open('top1.png')
     render_img.save(f"imgs/render_input_{idx}.png")
-    cond_scale = 0.6
+    cond_scale = 0.4
     image = outpaint_controlnet(pipeline, render_img, new_mask,vis=True,prompt=prompt,num_steps=28,guidance_scale=3.5,cond_scale=cond_scale)
     image = image.resize((1024, 1024), Image.LANCZOS)
     image.save(f"imgs/render_{idx}.png")
