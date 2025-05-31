@@ -6,7 +6,16 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import gc 
 import torch
+import subprocess
 
+
+def run_with_conda_env(env_name, script_path):
+    cmd = f"""
+    source ~/miniconda/etc/profile.d/conda.sh
+    conda activate {env_name}
+    python {script_path}
+    """
+    subprocess.run(['bash', '-c', cmd], check=True)
 
 def clear_gpu_memory():
     """Clear CUDA memory to free up GPU resources"""
@@ -19,6 +28,9 @@ def clear_gpu_memory():
     # Empty CUDA cache
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
+        torch.cuda.reset_max_memory_allocated()
+        torch.cuda.reset_peak_memory_stats()
+        torch.cuda.synchronize()
     
     # Run garbage collection
     gc.collect()
