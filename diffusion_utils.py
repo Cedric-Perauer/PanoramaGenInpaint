@@ -236,7 +236,7 @@ def outpaint_controlnet(pipe,image, mask,vis=False,num_steps=50,prompt='a city t
 		controlnet_conditioning_scale=cond_scale,
 		guidance_scale=guidance_scale,
 		negative_prompt="",
-		true_guidance_scale=1.0 # default: 3.5 for alpha and 1.0 for beta
+		true_guidance_scale=3.5 # default: 3.5 for alpha and 1.0 for beta
 	).images[0]
 	if vis:
 		print("Inpainting done")
