@@ -160,7 +160,7 @@ for view in top_and_bottom_views :
 '''
 side_view_pano = Image.open("imgs/initial_pano_center.png")
 side_view_pano_np = np.array(side_view_pano)
-REFINER = False 
+REFINER = True 
 for idx,view in enumerate(tqdm(side_views, desc="Processing side views")):
     show_image_cv2(cv2.cvtColor(initial_pano_np, cv2.COLOR_BGR2RGB))
     render_img = render_perspective(
@@ -169,18 +169,24 @@ for idx,view in enumerate(tqdm(side_views, desc="Processing side views")):
     show_image_cv2(cv2.cvtColor(render_img, cv2.COLOR_BGR2RGB))
     
     mask = create_mask_from_black(render_img, threshold=10)
-    new_mask = fix_inpaint_mask(mask,extend_amount=100)
+    if idx == 0 : 
+        new_mask = fix_inpaint_mask(mask,extend_amount=100)
+    else:
+        new_mask = fix_inpaint_mask(mask,extend_amount=30)
     
     new_mask = Image.fromarray(new_mask).convert("L")
     new_mask.save(f"new_mask_{idx}.png")
     render_img = Image.fromarray(render_img).convert("RGB")
     show_image_cv2(pil_to_cv2(new_mask))
-    prompt = 'a different house on a market square'      
+    prompt = 'a photorealistic house on a market square'      
     
     print(f"Render image shape: {render_img.size}{mask.shape}")
     #image = Image.open('top1.png')
     render_img.save(f"imgs/render_input_{idx}.png")
-    cond_scale = 0.4
+    if idx == 0 : 
+        cond_scale = 0.4
+    else : 
+        cond_scale = 0.9
     image = outpaint_controlnet(pipeline, render_img, new_mask,vis=True,prompt=prompt,num_steps=28,guidance_scale=3.5,cond_scale=cond_scale)
     image = image.resize((1024, 1024), Image.LANCZOS)
     image.save(f"imgs/render_{idx}.png")
@@ -198,8 +204,8 @@ for idx,view in enumerate(tqdm(side_views, desc="Processing side views")):
     #image = generate_outpaint(pipeline, image, np.ones_like(new_mask),vis=True,num_steps=20,prompt=prompt)
     #image = Image.open("outpainted_test.png")
     cur_mask = new_mask 
-    if idx == 0 : 
-        cur_mask = None
+    #if idx == 0 : 
+    cur_mask = None
     initial_pano_np = project_perspective_to_equirect(
         cv2.cvtColor(pil_to_cv2(image),cv2.COLOR_BGR2RGB), 
         initial_pano_np,

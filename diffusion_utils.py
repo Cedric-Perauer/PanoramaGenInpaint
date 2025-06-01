@@ -175,7 +175,7 @@ def load_contolnet_pipeline():
 	from pipeline_flux_controlnet_inpaint import FluxControlNetInpaintingPipeline
 	from torchao.quantization import quantize_, int8_weight_only
 
-	controlnet = FluxControlNetModel.from_pretrained("alimama-creative/FLUX.1-dev-Controlnet-Inpainting-Alpha", torch_dtype=torch.bfloat16)
+	controlnet = FluxControlNetModel.from_pretrained("alimama-creative/FLUX.1-dev-Controlnet-Inpainting-Beta", torch_dtype=torch.bfloat16)
 	transformer = FluxTransformer2DModel.from_pretrained(
 			"black-forest-labs/FLUX.1-dev", subfolder='transformer', torch_dtype=torch.bfloat16)
 	
@@ -236,7 +236,7 @@ def outpaint_controlnet(pipe,image, mask,vis=False,num_steps=50,prompt='a city t
 		controlnet_conditioning_scale=cond_scale,
 		guidance_scale=guidance_scale,
 		negative_prompt="",
-		true_guidance_scale=3.5 # default: 3.5 for alpha and 1.0 for beta
+		true_guidance_scale=3.5  # default: 3.5 for alpha and 1.0 for beta
 	).images[0]
 	if vis:
 		print("Inpainting done")
