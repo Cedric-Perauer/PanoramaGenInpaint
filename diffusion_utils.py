@@ -124,7 +124,7 @@ def vis_inpaint_strategy(vis=False):
 		print(f"An error occurred: {e}")
 
 
-def fix_inpaint_mask(mask, contour_color=(0, 255, 0), fill_color=(0, 0, 0),extend_amount=100):
+def fix_inpaint_mask(mask, contour_color=(0, 255, 0), fill_color=(0, 0, 0),extend_amount=100,mode=None,side='r'):
     mask_copy = mask.copy()
     if mask_copy.dtype != np.uint8:
     
@@ -144,7 +144,26 @@ def fix_inpaint_mask(mask, contour_color=(0, 255, 0), fill_color=(0, 0, 0),exten
     if blur_amount > 0:
         mask_copy = cv2.GaussianBlur(mask_copy, (blur_amount*2+1, blur_amount*2+1), 0)
         # Normalize back to proper range
-     
+    
+    if mode is not None:
+        if side == 'r':
+            if mode == 'step1':
+                mask_copy[:,-150:] = 0
+            elif mode == 'step2':
+                mask_copy = np.zeros_like(mask_copy)
+                mask_copy[:,-200:] = 255
+            else:
+                raise ValueError(f"Invalid mode: {mode}")
+
+        if side == 'l':
+            if mode == 'step1':
+                mask_copy[:,:250] = 0
+            elif mode == 'step2':
+                mask_copy = np.zeros_like(mask_copy)
+                mask_copy[:,:270] = 1
+            else:
+                raise ValueError(f"Invalid mode: {mode}")
+    
     return mask_copy    
 
 def load_pipeline(four_bit=False):

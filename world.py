@@ -69,9 +69,12 @@ def load_contolnet_pipeline():
 
 top_and_bottom_views = [all_views_data[0],all_views_data[3]]
 side_views = all_views_data[6:]
-side_view_left = side_views[5]
-
-
+#side_view_left = side_views[5]
+#side_views_first = side_views[:2] + [side_view_left] 
+#right_side_nums = [2,3,4]
+#left_side_nums = [6]
+right_side_nums = []
+left_side_nums = []
 clear_gpu_memory()
 
 pipeline = load_contolnet_pipeline()
@@ -114,53 +117,12 @@ for view in top_and_bottom_views[:2] :
 inital_pano = Image.open("imgs/initial_pano_with_back.png")
 initial_pano_np = np.array(inital_pano)
 output_size = 1024
-'''
-for view in top_and_bottom_views :
-    show_image_cv2(cv2.cvtColor(initial_pano_np, cv2.COLOR_BGR2RGB))
-    render_img = render_perspective(
-                initial_pano_np, view['yaw'], -view['pitch'], view['fov'], view['vfov'], output_size
-    )
-    
-    mask = create_mask_from_black(render_img, threshold=10)
-    
-    mask[mask==255] = 1
-    new_mask = fix_inpaint_mask(mask*255)
-    
-    render_img = cv2.cvtColor(render_img, cv2.COLOR_BGR2RGB)
-    #show_image_cv2(render_img)
-    render_img = cv2_to_pil(render_img)
-    if view['label'] == 'Top' : 
-        prompt = 'Floor of a city town square'      
-    else : 
-        prompt = 'Sky of a city town square, no buildings'
-    
-    print(f"Render image shape: {render_img.size}{mask.shape}")
-    #image = Image.open('top1.png')
-    image = generate_outpaint(pipeline, render_img, new_mask,vis=True,prompt=prompt)
-    image.save("outpainted_test.png")
-    #image = Image.open("outpainted_test.png")
-    initial_pano_np = project_perspective_to_equirect(
-        cv2.cvtColor(pil_to_cv2(image),cv2.COLOR_BGR2RGB), 
-        initial_pano_np,
-        yaw_deg=view['yaw'], 
-        pitch_deg=view['pitch'],
-        h_fov_deg=view['fov'], 
-        v_fov_deg=view['fov'],
-        mask=None,  # Original mask - only project where we outpainted,
-        mirror=False
-    )
 
-    # Visualize the updated panorama
-    plt.figure(figsize=(20, 10))
-    plt.imshow(initial_pano_np)
-    plt.title(f"Panorama after outpainting {view['label']}")
-    plt.axis('off')
-    plt.show()
-    #break
-'''
+
 side_view_pano = Image.open("imgs/initial_pano_center.png")
 side_view_pano_np = np.array(side_view_pano)
-REFINER = True 
+REFINER = False 
+COMPOSITE = False
 for idx,view in enumerate(tqdm(side_views, desc="Processing side views")):
     show_image_cv2(cv2.cvtColor(initial_pano_np, cv2.COLOR_BGR2RGB))
     render_img = render_perspective(
@@ -172,26 +134,69 @@ for idx,view in enumerate(tqdm(side_views, desc="Processing side views")):
     if idx == 0 : 
         new_mask = fix_inpaint_mask(mask,extend_amount=100)
     else:
-        new_mask = fix_inpaint_mask(mask,extend_amount=30)
+        new_mask = fix_inpaint_mask(mask,extend_amount=20)
     
-    new_mask = Image.fromarray(new_mask).convert("L")
-    new_mask.save(f"new_mask_{idx}.png")
+    save_mask = Image.fromarray(new_mask).convert("L")
+    save_mask.save(f"new_mask_{idx}.png")
     render_img = Image.fromarray(render_img).convert("RGB")
     show_image_cv2(pil_to_cv2(new_mask))
     prompt = 'a photorealistic house on a market square'      
     
     print(f"Render image shape: {render_img.size}{mask.shape}")
     #image = Image.open('top1.png')
-    render_img.save(f"imgs/render_input_{idx}.png")
+    render_img.save(f"imgs/render_{idx}.png")
+
     if idx == 0 : 
         cond_scale = 0.4
     else : 
         cond_scale = 0.9
-    image = outpaint_controlnet(pipeline, render_img, new_mask,vis=True,prompt=prompt,num_steps=28,guidance_scale=3.5,cond_scale=cond_scale)
+        
+    if idx not in right_side_nums and idx not in left_side_nums : 
+        image = outpaint_controlnet(pipeline, render_img, new_mask,vis=True,prompt=prompt,num_steps=50,guidance_scale=3.5,cond_scale=cond_scale)
+    else : 
+        if idx in right_side_nums : 
+            print(f"Right side {idx}")
+            cur_mask = fix_inpaint_mask(new_mask,mode='step1',side='r')
+            render_img.save(f'imgs/input_1_{idx}.png')
+            image = outpaint_controlnet(pipeline, render_img, copy.deepcopy(cur_mask),vis=True,prompt=prompt,num_steps=50,guidance_scale=3.5,cond_scale=cond_scale)
+            Image.fromarray(cur_mask).convert("RGB").save(f"imgs/cur_mask_{idx}_1.png")
+            image.save(f"imgs/fix_render_{idx}_1.png")
+            
+            cur_mask = fix_inpaint_mask(new_mask,mode='step2',side='r')
+            image.save(f'imgs/input_2_{idx}.png')
+            image = outpaint_controlnet(pipeline, image, copy.deepcopy(cur_mask),vis=True,prompt=prompt,num_steps=50,guidance_scale=3.5,cond_scale=cond_scale)
+            Image.fromarray(cur_mask).convert("RGB").save(f"imgs/cur_mask_{idx}_2.png")
+            image.save(f"imgs/fix_render_{idx}_2.png")
+              
+        else : 
+            new_mask = fix_inpaint_mask(new_mask,mode='step1',side='l')
+        
+      
     image = image.resize((1024, 1024), Image.LANCZOS)
     image.save(f"imgs/render_{idx}.png")
-    
-
+    if COMPOSITE : 
+        # Composite the outpainted image with the rendered image using the mask
+        mask_array = np.array(new_mask)
+        mask_array = mask_array.astype(np.float32) / 255.0  # Normalize to 0-1
+        
+        # Convert images to numpy arrays
+        outpainted_np = np.array(image)
+        rendered_np = np.array(render_img)
+        
+        # Resize outpainted image to match mask dimensions
+        outpainted_np = cv2.resize(outpainted_np, (mask_array.shape[1], mask_array.shape[0]))
+        rendered_np = cv2.resize(rendered_np, (mask_array.shape[1], mask_array.shape[0]))
+        mask_array = np.expand_dims(mask_array, axis=2)  # Add channel dimension
+        
+        # Composite using the mask
+        composite = outpainted_np * mask_array + rendered_np * (1 - mask_array)
+        image = Image.fromarray(composite.astype(np.uint8))
+        
+        image = image.resize((1024, 1024), Image.LANCZOS)
+        image.save(f"imgs/render_{idx}.png")
+        
+        
+        
     clear_gpu_memory()
     #if idx == 0 : 
     if REFINER or idx == 0: 
@@ -201,11 +206,9 @@ for idx,view in enumerate(tqdm(side_views, desc="Processing side views")):
     #    image = Image.open(f"imgs/render_{idx}.png")
         
     new_mask = np.array(new_mask)
-    #image = generate_outpaint(pipeline, image, np.ones_like(new_mask),vis=True,num_steps=20,prompt=prompt)
-    #image = Image.open("outpainted_test.png")
-    cur_mask = new_mask 
-    #if idx == 0 : 
-    cur_mask = None
+    cur_mask = new_mask
+    if idx == 0 : 
+        cur_mask = None
     initial_pano_np = project_perspective_to_equirect(
         cv2.cvtColor(pil_to_cv2(image),cv2.COLOR_BGR2RGB), 
         initial_pano_np,
@@ -229,7 +232,9 @@ for idx,view in enumerate(tqdm(side_views, desc="Processing side views")):
     )
     
     cur_pano = cv2.cvtColor(initial_pano_np, cv2.COLOR_BGR2RGB)
-    cv2.imwrite(f"imgs/cur_pano_{idx}.png", cur_pano)   
+    cv2.imwrite(f"imgs/cur_pano_{idx}.png", cur_pano)  
+    if idx == 2:
+        break 
     
 
     
