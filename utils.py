@@ -1,10 +1,10 @@
-import os 
+import os
 from torchvision import transforms
 import numpy as np
 import cv2
 from PIL import Image
 import matplotlib.pyplot as plt
-import gc 
+import gc
 import torch
 import subprocess
 
@@ -17,6 +17,7 @@ def run_with_conda_env(env_name, script_path):
     """
     subprocess.run(['bash', '-c', cmd], check=True)
 
+
 def clear_gpu_memory():
     """Clear CUDA memory to free up GPU resources"""
     # Delete variables that might hold tensors
@@ -24,32 +25,37 @@ def clear_gpu_memory():
         del pipe
     except:
         pass
-    
+
     # Empty CUDA cache
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
         torch.cuda.reset_max_memory_allocated()
         torch.cuda.reset_peak_memory_stats()
         torch.cuda.synchronize()
-    
+
     # Run garbage collection
     gc.collect()
-    
+
     print("GPU memory cleared")
+
 
 def preprocess_image(image):
     image = image.convert("RGB")
-    image = transforms.CenterCrop((image.size[1] // 64 * 64, image.size[0] // 64 * 64))(image)
+    image = transforms.CenterCrop(
+        (image.size[1] // 64 * 64, image.size[0] // 64 * 64))(image)
     image = transforms.ToTensor()(image)
     image = image.unsqueeze(0)
     return image
 
+
 def preprocess_mask(mask):
     mask = mask.convert("L")
-    mask = transforms.CenterCrop((mask.size[1] // 64 * 64, mask.size[0] // 64 * 64))(mask)
+    mask = transforms.CenterCrop(
+        (mask.size[1] // 64 * 64, mask.size[0] // 64 * 64))(mask)
     mask = transforms.ToTensor()(mask)
     mask = mask
     return mask
+
 
 def show_image_cv2(img):
     plt.figure(figsize=(10, 8))
@@ -58,6 +64,7 @@ def show_image_cv2(img):
     plt.imshow(rgb_img)
     plt.axis('off')
     plt.show()
+
 
 def pil_to_cv2(pil_image):
     """Convert a PIL Image to an OpenCV image (numpy array in BGR format)"""
@@ -68,6 +75,8 @@ def pil_to_cv2(pil_image):
     return bgr_image
 
 # OpenCV to PIL Image
+
+
 def cv2_to_pil(cv2_image):
     """Convert an OpenCV image to a PIL Image"""
     # Convert BGR to RGB
