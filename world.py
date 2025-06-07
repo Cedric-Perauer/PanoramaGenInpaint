@@ -5,10 +5,17 @@ from torchvision import transforms
 from PIL import Image
 import numpy as np
 import cv2
-from utils import (pil_to_cv2, cv2_to_pil, show_image_cv2,
-                   clear_gpu_memory, run_with_conda_env)
+from utils import pil_to_cv2, cv2_to_pil, show_image_cv2, clear_gpu_memory, run_with_conda_env
 import copy
-from diffusion_utils import load_pipeline, generate_outpaint, fix_mask, fix_inpaint_mask, vis_inpaint_strategy, load_contolnet_pipeline, outpaint_controlnet
+from diffusion_utils import (
+    load_pipeline,
+    generate_outpaint,
+    fix_mask,
+    fix_inpaint_mask,
+    vis_inpaint_strategy,
+    load_contolnet_pipeline,
+    outpaint_controlnet,
+)
 import torch
 from dust3r_infer import get_focals
 from image_utils import *
@@ -23,8 +30,7 @@ TOP_BOTTOM_VIEWS = False
 IMAGE_SIZE = 1024
 
 if GEN == True:
-    pipe = FluxPipeline.from_pretrained(
-        "black-forest-labs/FLUX.1-schnell", torch_dtype=torch.bfloat16)
+    pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-schnell", torch_dtype=torch.bfloat16)
     pipe.enable_model_cpu_offload()
     prompt = "a town square in a city with a person standing in the center"
     image = pipe(
@@ -32,11 +38,11 @@ if GEN == True:
         guidance_scale=0.0,
         num_inference_steps=4,
         max_sequence_length=256,
-        generator=torch.Generator("cpu").manual_seed(0)
+        generator=torch.Generator("cpu").manual_seed(0),
     ).images[0]
     image.save("middle.jpg")
     clear_gpu_memory()
-    focals = get_focals('middle.jpg', 512)
+    focals = get_focals("middle.jpg", 512)
     source_image_cv2 = pil_to_cv2(image)
     show_image_cv2(source_image_cv2)
 
@@ -62,33 +68,31 @@ side_view_pano_np = np.array(side_view_pano)
 
 if TOP_BOTTOM_VIEWS:
     for view in top_and_bottom_views:
-        mask = view['mask']
+        mask = view["mask"]
         mask[mask == 255] = 1
-        new_mask = fix_inpaint_mask(mask*255)
+        new_mask = fix_inpaint_mask(mask * 255)
         inital_pano = Image.open("initial_pano_with_back.png")
         initial_pano_np = np.array(inital_pano)
-        render_img = cv2.cvtColor(view['render'], cv2.COLOR_BGR2RGB)
+        render_img = cv2.cvtColor(view["render"], cv2.COLOR_BGR2RGB)
         render_img = cv2_to_pil(render_img)
 
         print(f"Render image shape: {render_img.size}{mask.shape}")
-        image = generate_outpaint(
-            pipeline, render_img, new_mask, vis=True, prompt='floor of a city town square')
+        image = generate_outpaint(pipeline, render_img, new_mask, vis=True, prompt="floor of a city town square")
         final_pano = project_perspective_to_equirect(
             cv2.cvtColor(pil_to_cv2(image), cv2.COLOR_BGR2RGB),
             initial_pano_np,
-            yaw_deg=-view['yaw'],
-            pitch_deg=view['pitch'],
-            h_fov_deg=view['fov'],
-            v_fov_deg=view['fov'],
-            mask=mask
+            yaw_deg=-view["yaw"],
+            pitch_deg=view["pitch"],
+            h_fov_deg=view["fov"],
+            v_fov_deg=view["fov"],
+            mask=mask,
         )
 
 
 for idx, view in enumerate(tqdm(side_views, desc="Processing side views")):
     show_image_cv2(cv2.cvtColor(initial_pano_np, cv2.COLOR_BGR2RGB))
     render_img = render_perspective(
-        side_view_pano_np, view['yaw'], -
-        view['pitch'], view['fov'], view['vfov'], IMAGE_SIZE
+        side_view_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
     )
     show_image_cv2(cv2.cvtColor(render_img, cv2.COLOR_BGR2RGB))
 
@@ -102,7 +106,7 @@ for idx, view in enumerate(tqdm(side_views, desc="Processing side views")):
     save_mask.save(f"new_mask_{idx}.png")
     render_img = Image.fromarray(render_img).convert("RGB")
     show_image_cv2(pil_to_cv2(new_mask))
-    prompt = 'a photorealistic house on a market square'
+    prompt = "a photorealistic house on a market square"
 
     print(f"Render image shape: {render_img.size}{mask.shape}")
     render_img.save(f"imgs/render_{idx}.png")
@@ -113,29 +117,51 @@ for idx, view in enumerate(tqdm(side_views, desc="Processing side views")):
         cond_scale = 0.9
 
     if idx not in right_side_nums and idx not in left_side_nums:
-        image = outpaint_controlnet(pipeline, render_img, new_mask, vis=True,
-                                    prompt=prompt, num_steps=50, guidance_scale=3.5, cond_scale=cond_scale)
+        image = outpaint_controlnet(
+            pipeline,
+            render_img,
+            new_mask,
+            vis=True,
+            prompt=prompt,
+            num_steps=50,
+            guidance_scale=3.5,
+            cond_scale=cond_scale,
+        )
     else:
         if idx in right_side_nums:
             print(f"Right side {idx}")
-            cur_mask = fix_inpaint_mask(new_mask, mode='step1', side='r')
-            render_img.save(f'imgs/input_1_{idx}.png')
-            image = outpaint_controlnet(pipeline, render_img, copy.deepcopy(
-                cur_mask), vis=True, prompt=prompt, num_steps=50, guidance_scale=3.5, cond_scale=cond_scale)
-            Image.fromarray(cur_mask).convert(
-                "RGB").save(f"imgs/cur_mask_{idx}_1.png")
+            cur_mask = fix_inpaint_mask(new_mask, mode="step1", side="r")
+            render_img.save(f"imgs/input_1_{idx}.png")
+            image = outpaint_controlnet(
+                pipeline,
+                render_img,
+                copy.deepcopy(cur_mask),
+                vis=True,
+                prompt=prompt,
+                num_steps=50,
+                guidance_scale=3.5,
+                cond_scale=cond_scale,
+            )
+            Image.fromarray(cur_mask).convert("RGB").save(f"imgs/cur_mask_{idx}_1.png")
             image.save(f"imgs/fix_render_{idx}_1.png")
 
-            cur_mask = fix_inpaint_mask(new_mask, mode='step2', side='r')
-            image.save(f'imgs/input_2_{idx}.png')
-            image = outpaint_controlnet(pipeline, image, copy.deepcopy(
-                cur_mask), vis=True, prompt=prompt, num_steps=50, guidance_scale=3.5, cond_scale=cond_scale)
-            Image.fromarray(cur_mask).convert(
-                "RGB").save(f"imgs/cur_mask_{idx}_2.png")
+            cur_mask = fix_inpaint_mask(new_mask, mode="step2", side="r")
+            image.save(f"imgs/input_2_{idx}.png")
+            image = outpaint_controlnet(
+                pipeline,
+                image,
+                copy.deepcopy(cur_mask),
+                vis=True,
+                prompt=prompt,
+                num_steps=50,
+                guidance_scale=3.5,
+                cond_scale=cond_scale,
+            )
+            Image.fromarray(cur_mask).convert("RGB").save(f"imgs/cur_mask_{idx}_2.png")
             image.save(f"imgs/fix_render_{idx}_2.png")
 
         else:
-            new_mask = fix_inpaint_mask(new_mask, mode='step1', side='l')
+            new_mask = fix_inpaint_mask(new_mask, mode="step1", side="l")
 
     image = image.resize((1024, 1024), Image.LANCZOS)
     image.save(f"imgs/render_{idx}.png")
@@ -149,12 +175,9 @@ for idx, view in enumerate(tqdm(side_views, desc="Processing side views")):
         rendered_np = np.array(render_img)
 
         # Resize outpainted image to match mask dimensions
-        outpainted_np = cv2.resize(
-            outpainted_np, (mask_array.shape[1], mask_array.shape[0]))
-        rendered_np = cv2.resize(
-            rendered_np, (mask_array.shape[1], mask_array.shape[0]))
-        mask_array = np.expand_dims(
-            mask_array, axis=2)  # Add channel dimension
+        outpainted_np = cv2.resize(outpainted_np, (mask_array.shape[1], mask_array.shape[0]))
+        rendered_np = cv2.resize(rendered_np, (mask_array.shape[1], mask_array.shape[0]))
+        mask_array = np.expand_dims(mask_array, axis=2)  # Add channel dimension
 
         # Composite using the mask
         composite = outpainted_np * mask_array + rendered_np * (1 - mask_array)
@@ -167,7 +190,8 @@ for idx, view in enumerate(tqdm(side_views, desc="Processing side views")):
     # if idx == 0 :
     if REFINER or idx == 0:
         run_with_conda_env(
-            'diffusers33', f'refiner.py imgs/render_{idx}.png --output_path imgs/refined_output_{idx}.png')
+            "diffusers33", f"refiner.py imgs/render_{idx}.png --output_path imgs/refined_output_{idx}.png"
+        )
         image = Image.open(f"imgs/refined_output_{idx}.png")
     # else :
     #    image = Image.open(f"imgs/render_{idx}.png")
@@ -179,23 +203,23 @@ for idx, view in enumerate(tqdm(side_views, desc="Processing side views")):
     initial_pano_np = project_perspective_to_equirect(
         cv2.cvtColor(pil_to_cv2(image), cv2.COLOR_BGR2RGB),
         initial_pano_np,
-        yaw_deg=view['yaw'],
-        pitch_deg=view['pitch'],
-        h_fov_deg=view['fov'],
-        v_fov_deg=view['fov'],
+        yaw_deg=view["yaw"],
+        pitch_deg=view["pitch"],
+        h_fov_deg=view["fov"],
+        v_fov_deg=view["fov"],
         mask=cur_mask,  # Original mask - only project where we outpainted,
-        mirror=False
+        mirror=False,
     )
 
     side_view_pano_np = project_perspective_to_equirect(
         cv2.cvtColor(pil_to_cv2(image), cv2.COLOR_BGR2RGB),
         side_view_pano_np,
-        yaw_deg=view['yaw'],
-        pitch_deg=view['pitch'],
-        h_fov_deg=view['fov'],
-        v_fov_deg=view['fov'],
+        yaw_deg=view["yaw"],
+        pitch_deg=view["pitch"],
+        h_fov_deg=view["fov"],
+        v_fov_deg=view["fov"],
         mask=cur_mask,  # Original mask - only project where we outpainted,
-        mirror=False
+        mirror=False,
     )
 
     cur_pano = cv2.cvtColor(initial_pano_np, cv2.COLOR_BGR2RGB)

@@ -20,5 +20,6 @@ repos:
     rev: v2.0.4
     hooks:
     -   id: autopep8
-        args: [--max-line-length=120, --aggressive]
+        args: [--max-line-length=120, --aggressive, --verbose, --diff]
         exclude: ^(deprecated/|dust3r/|layerpano3d/|FLUX-Controlnet-Inpainting/|imgs/)
+        verbose: true

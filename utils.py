@@ -15,7 +15,7 @@ def run_with_conda_env(env_name, script_path):
     conda activate {env_name}
     python {script_path}
     """
-    subprocess.run(['bash', '-c', cmd], check=True)
+    subprocess.run(["bash", "-c", cmd], check=True)
 
 
 def clear_gpu_memory():
@@ -41,8 +41,7 @@ def clear_gpu_memory():
 
 def preprocess_image(image):
     image = image.convert("RGB")
-    image = transforms.CenterCrop(
-        (image.size[1] // 64 * 64, image.size[0] // 64 * 64))(image)
+    image = transforms.CenterCrop((image.size[1] // 64 * 64, image.size[0] // 64 * 64))(image)
     image = transforms.ToTensor()(image)
     image = image.unsqueeze(0)
     return image
@@ -50,8 +49,7 @@ def preprocess_image(image):
 
 def preprocess_mask(mask):
     mask = mask.convert("L")
-    mask = transforms.CenterCrop(
-        (mask.size[1] // 64 * 64, mask.size[0] // 64 * 64))(mask)
+    mask = transforms.CenterCrop((mask.size[1] // 64 * 64, mask.size[0] // 64 * 64))(mask)
     mask = transforms.ToTensor()(mask)
     mask = mask
     return mask
@@ -62,7 +60,7 @@ def show_image_cv2(img):
     # Convert BGR to RGB
     rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     plt.imshow(rgb_img)
-    plt.axis('off')
+    plt.axis("off")
     plt.show()
 
 
@@ -73,6 +71,7 @@ def pil_to_cv2(pil_image):
     # Convert RGB to BGR (OpenCV uses BGR)
     bgr_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR)
     return bgr_image
+
 
 # OpenCV to PIL Image
 

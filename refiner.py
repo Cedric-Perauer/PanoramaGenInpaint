@@ -32,10 +32,7 @@ def clear_gpu_memory():
 def refine_image(image_path, output_path="refined_output.png"):
     clear_gpu_memory()
     # Load components
-    pipe = FluxImg2ImgPipeline.from_pretrained(
-        "black-forest-labs/FLUX.1-schnell",
-        torch_dtype=torch.bfloat16
-    )
+    pipe = FluxImg2ImgPipeline.from_pretrained("black-forest-labs/FLUX.1-schnell", torch_dtype=torch.bfloat16)
     quantize_(pipe.transformer, int8_weight_only())
     quantize_(pipe.vae, int8_weight_only())
     pipe.enable_model_cpu_offload()
@@ -50,7 +47,7 @@ def refine_image(image_path, output_path="refined_output.png"):
         strength=0.3,
         num_inference_steps=100,  # More steps → higher quality
         guidance_scale=3.5,  # Text prompt relevance (if using)
-        prompt=''
+        prompt="",
     ).images[0]
 
     refined_image.save(output_path)
@@ -58,11 +55,9 @@ def refine_image(image_path, output_path="refined_output.png"):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description='Refine an image using FLUX model')
-    parser.add_argument('image_path', type=str, help='Path to the input image')
-    parser.add_argument('--output_path', type=str,
-                        default="refined_output.png", help='Path to save the refined image')
+    parser = argparse.ArgumentParser(description="Refine an image using FLUX model")
+    parser.add_argument("image_path", type=str, help="Path to the input image")
+    parser.add_argument("--output_path", type=str, default="refined_output.png", help="Path to save the refined image")
 
     args = parser.parse_args()
 
