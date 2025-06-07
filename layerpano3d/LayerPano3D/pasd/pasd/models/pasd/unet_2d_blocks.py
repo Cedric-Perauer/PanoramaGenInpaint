@@ -26,6 +26,7 @@ from diffusers.models.transformers.transformer_2d import Transformer2DModel
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
+
 def get_up_block(
     up_block_type,
     num_layers,
@@ -59,7 +60,8 @@ def get_up_block(
         )
         attention_head_dim = num_attention_heads
 
-    up_block_type = up_block_type[7:] if up_block_type.startswith("UNetRes") else up_block_type
+    up_block_type = up_block_type[7:] if up_block_type.startswith(
+        "UNetRes") else up_block_type
     if up_block_type == "UpBlock2D":
         return UpBlock2D(
             num_layers=num_layers,
@@ -72,7 +74,6 @@ def get_up_block(
             resnet_act_fn=resnet_act_fn,
             resnet_groups=resnet_groups,
             resnet_time_scale_shift=resnet_time_scale_shift,
-
             transformer_layers_per_block=transformer_layers_per_block,
             num_attention_heads=num_attention_heads,
             use_linear_projection=use_linear_projection,
@@ -81,7 +82,8 @@ def get_up_block(
         )
     elif up_block_type == "CrossAttnUpBlock2D":
         if cross_attention_dim is None:
-            raise ValueError("cross_attention_dim must be specified for CrossAttnUpBlock2D")
+            raise ValueError(
+                "cross_attention_dim must be specified for CrossAttnUpBlock2D")
         return CrossAttnUpBlock2D(
             num_layers=num_layers,
             transformer_layers_per_block=transformer_layers_per_block,
@@ -104,6 +106,7 @@ def get_up_block(
         )
 
     raise ValueError(f"{up_block_type} does not exist.")
+
 
 class CrossAttnUpBlock2D(nn.Module):
     def __init__(
@@ -140,7 +143,8 @@ class CrossAttnUpBlock2D(nn.Module):
         self.num_attention_heads = num_attention_heads
 
         for i in range(num_layers):
-            res_skip_channels = in_channels if (i == num_layers - 1) else out_channels
+            res_skip_channels = in_channels if (
+                i == num_layers - 1) else out_channels
             resnet_in_channels = prev_output_channel if i == 0 else out_channels
 
             resnets.append(
@@ -189,19 +193,22 @@ class CrossAttnUpBlock2D(nn.Module):
                     out_channels // num_attention_heads,
                     in_channels=out_channels,
                     num_layers=transformer_layers_per_block,
-                    cross_attention_dim=res_skip_channels, ####
+                    cross_attention_dim=res_skip_channels,
                     norm_num_groups=resnet_groups,
                     use_linear_projection=use_linear_projection,
                     only_cross_attention=only_cross_attention,
                     upcast_attention=upcast_attention,
-                ) if use_pixelwise_attention else None
+                )
+                if use_pixelwise_attention
+                else None
             )
         self.attentions = nn.ModuleList(attentions)
         self.resnets = nn.ModuleList(resnets)
         self.pixel_attentions = nn.ModuleList(pixel_attentions)
 
         if add_upsample:
-            self.upsamplers = nn.ModuleList([Upsample2D(out_channels, use_conv=True, out_channels=out_channels)])
+            self.upsamplers = nn.ModuleList(
+                [Upsample2D(out_channels, use_conv=True, out_channels=out_channels)])
         else:
             self.upsamplers = None
 
@@ -219,16 +226,19 @@ class CrossAttnUpBlock2D(nn.Module):
         attention_mask: Optional[torch.FloatTensor] = None,
         encoder_attention_mask: Optional[torch.FloatTensor] = None,
     ):
-        for resnet, attn, pix_attn in zip(self.resnets, self.attentions, self.pixel_attentions):
+        for resnet, attn, pix_attn in zip(
+                self.resnets, self.attentions, self.pixel_attentions):
             # pop res hidden states
             res_hidden_states = res_hidden_states_tuple[-1]
             res_hidden_states_tuple = res_hidden_states_tuple[:-1]
-            hidden_states = torch.cat([hidden_states, res_hidden_states], dim=1)
+            hidden_states = torch.cat(
+                [hidden_states, res_hidden_states], dim=1)
 
             if pixelwise_hidden_states is not None:
                 pixelwise_hidden_state = pixelwise_hidden_states[-1]
                 pixelwise_hidden_states = pixelwise_hidden_states[:-1]
-                pixelwise_hidden_state = rearrange(pixelwise_hidden_state, 'b c h w -> b (h w) c')
+                pixelwise_hidden_state = rearrange(
+                    pixelwise_hidden_state, "b c h w -> b (h w) c")
 
             if self.training and self.gradient_checkpointing:
 
@@ -241,7 +251,8 @@ class CrossAttnUpBlock2D(nn.Module):
 
                     return custom_forward
 
-                ckpt_kwargs: Dict[str, Any] = {"use_reentrant": False} if is_torch_version(">=", "1.11.0") else {}
+                ckpt_kwargs: Dict[str, Any] = {
+                    "use_reentrant": False} if is_torch_version(">=", "1.11.0") else {}
                 hidden_states = torch.utils.checkpoint.checkpoint(
                     create_custom_forward(resnet),
                     hidden_states,
@@ -257,7 +268,7 @@ class CrossAttnUpBlock2D(nn.Module):
                     return_dict=False,
                 )[0]
                 if pixelwise_hidden_states is not None:
-                    #print(hidden_states.shape, pixelwise_hidden_state.shape)
+                    # print(hidden_states.shape, pixelwise_hidden_state.shape)
                     hidden_states = pix_attn(
                         hidden_states,
                         encoder_hidden_states=pixelwise_hidden_state,
@@ -277,7 +288,7 @@ class CrossAttnUpBlock2D(nn.Module):
                     return_dict=False,
                 )[0]
                 if pixelwise_hidden_states is not None:
-                    #print(hidden_states.shape, pixelwise_hidden_state.shape)
+                    # print(hidden_states.shape, pixelwise_hidden_state.shape)
                     hidden_states = pix_attn(
                         hidden_states,
                         encoder_hidden_states=pixelwise_hidden_state,
@@ -310,7 +321,6 @@ class UpBlock2D(nn.Module):
         resnet_pre_norm: bool = True,
         output_scale_factor=1.0,
         add_upsample=True,
-
         transformer_layers_per_block: int = 1,
         num_attention_heads=1,
         use_linear_projection=False,
@@ -323,7 +333,8 @@ class UpBlock2D(nn.Module):
         pixel_attentions = []
 
         for i in range(num_layers):
-            res_skip_channels = in_channels if (i == num_layers - 1) else out_channels
+            res_skip_channels = in_channels if (
+                i == num_layers - 1) else out_channels
             resnet_in_channels = prev_output_channel if i == 0 else out_channels
 
             resnets.append(
@@ -346,35 +357,48 @@ class UpBlock2D(nn.Module):
                     out_channels // num_attention_heads,
                     in_channels=out_channels,
                     num_layers=transformer_layers_per_block,
-                    cross_attention_dim=out_channels, ####
+                    cross_attention_dim=out_channels,
                     norm_num_groups=resnet_groups,
                     use_linear_projection=use_linear_projection,
                     only_cross_attention=only_cross_attention,
                     upcast_attention=upcast_attention,
-                ) if use_pixelwise_attention else None
+                )
+                if use_pixelwise_attention
+                else None
             )
 
         self.resnets = nn.ModuleList(resnets)
         self.pixel_attentions = nn.ModuleList(pixel_attentions)
 
         if add_upsample:
-            self.upsamplers = nn.ModuleList([Upsample2D(out_channels, use_conv=True, out_channels=out_channels)])
+            self.upsamplers = nn.ModuleList(
+                [Upsample2D(out_channels, use_conv=True, out_channels=out_channels)])
         else:
             self.upsamplers = None
 
         self.gradient_checkpointing = False
 
-    def forward(self, hidden_states, res_hidden_states_tuple, temb=None, upsample_size=None, pixelwise_hidden_states=None, cross_attention_kwargs=None):
+    def forward(
+        self,
+        hidden_states,
+        res_hidden_states_tuple,
+        temb=None,
+        upsample_size=None,
+        pixelwise_hidden_states=None,
+        cross_attention_kwargs=None,
+    ):
         for resnet, pix_attn in zip(self.resnets, self.pixel_attentions):
             # pop res hidden states
             res_hidden_states = res_hidden_states_tuple[-1]
             res_hidden_states_tuple = res_hidden_states_tuple[:-1]
-            hidden_states = torch.cat([hidden_states, res_hidden_states], dim=1)
+            hidden_states = torch.cat(
+                [hidden_states, res_hidden_states], dim=1)
 
             if pixelwise_hidden_states is not None:
                 pixelwise_hidden_state = pixelwise_hidden_states[-1]
                 pixelwise_hidden_states = pixelwise_hidden_states[:-1]
-                pixelwise_hidden_state = rearrange(pixelwise_hidden_state, 'b c h w -> b (h w) c')
+                pixelwise_hidden_state = rearrange(
+                    pixelwise_hidden_state, "b c h w -> b (h w) c")
 
             if self.training and self.gradient_checkpointing:
 
@@ -386,8 +410,7 @@ class UpBlock2D(nn.Module):
 
                 if is_torch_version(">=", "1.11.0"):
                     hidden_states = torch.utils.checkpoint.checkpoint(
-                        create_custom_forward(resnet), hidden_states, temb, use_reentrant=False
-                    )
+                        create_custom_forward(resnet), hidden_states, temb, use_reentrant=False)
                 else:
                     hidden_states = torch.utils.checkpoint.checkpoint(
                         create_custom_forward(resnet), hidden_states, temb
@@ -396,7 +419,7 @@ class UpBlock2D(nn.Module):
                 hidden_states = resnet(hidden_states, temb)
 
             if pixelwise_hidden_states is not None:
-                #print(hidden_states.shape, pixelwise_hidden_state.shape)
+                # print(hidden_states.shape, pixelwise_hidden_state.shape)
                 hidden_states = pix_attn(
                     hidden_states,
                     encoder_hidden_states=pixelwise_hidden_state,

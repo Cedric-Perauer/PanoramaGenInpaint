@@ -106,7 +106,7 @@ If you find this project useful, please consider citing:
 }
 
 @inproceedings{depth_anything_v1,
-  title={Depth Anything: Unleashing the Power of Large-Scale Unlabeled Data}, 
+  title={Depth Anything: Unleashing the Power of Large-Scale Unlabeled Data},
   author={Yang, Lihe and Kang, Bingyi and Huang, Zilong and Xu, Xiaogang and Feng, Jiashi and Zhao, Hengshuang},
   booktitle={CVPR},
   year={2024}

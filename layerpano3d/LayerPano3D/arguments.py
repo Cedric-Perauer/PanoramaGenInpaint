@@ -9,11 +9,13 @@ from argparse import ArgumentParser, Namespace
 import sys
 import os
 
+
 class GroupParams:
     pass
 
+
 class ParamGroup:
-    def __init__(self, parser: ArgumentParser, name : str, fill_none = False):
+    def __init__(self, parser: ArgumentParser, name: str, fill_none=False):
         group = parser.add_argument_group(name)
         for key, value in vars(self).items():
             shorthand = False
@@ -21,15 +23,20 @@ class ParamGroup:
                 shorthand = True
                 key = key[1:]
             t = type(value)
-            value = value if not fill_none else None 
+            value = value if not fill_none else None
             if shorthand:
                 if t == bool:
-                    group.add_argument("--" + key, ("-" + key[0:1]), default=value, action="store_true")
+                    group.add_argument("--" + key,
+                                       ("-" + key[0:1]),
+                                       default=value,
+                                       action="store_true")
                 else:
-                    group.add_argument("--" + key, ("-" + key[0:1]), default=value, type=t)
+                    group.add_argument(
+                        "--" + key, ("-" + key[0:1]), default=value, type=t)
             else:
                 if t == bool:
-                    group.add_argument("--" + key, default=value, action="store_true")
+                    group.add_argument(
+                        "--" + key, default=value, action="store_true")
                 else:
                     group.add_argument("--" + key, default=value, type=t)
 
@@ -56,23 +63,21 @@ class ModelHiddenParams:
         self.time_smoothness_weight = 0.01
         self.l1_time_planes = 0.0001
         self.kplanes_config = {
-                             'grid_dimensions': 2,
-                             'input_coordinate_dim': 4,
-                             'output_coordinate_dim': 32,
-                             'resolution': [64, 64, 64, 25]
-                            }
+            "grid_dimensions": 2,
+            "input_coordinate_dim": 4,
+            "output_coordinate_dim": 32,
+            "resolution": [64, 64, 64, 25],
+        }
         self.multires = [1, 2, 4, 8]
-        self.no_grid=False
-        self.no_ds=False
-        self.no_dr=False
-        self.no_do=True
+        self.no_grid = False
+        self.no_ds = False
+        self.no_dr = False
+        self.no_do = True
 
-        
         # super().__init__(parser, "ModelHiddenParams")
 
 
-
-class GSParams: 
+class GSParams:
     def __init__(self):
         self.sh_degree = 3
         self.images = "images"
@@ -82,22 +87,22 @@ class GSParams:
         self.eval = False
         self.use_depth = False
 
-        self.iterations = 8990#3_000
-        
+        self.iterations = 8990  # 3_000
+
         self.iterations_4d = 30_000
-        
+
         self.position_lr_init = 0.00016
         self.position_lr_final = 0.0000016
         self.position_lr_delay_mult = 0.01
-        self.position_lr_max_steps = 8990#3_000
+        self.position_lr_max_steps = 8990  # 3_000
         self.feature_lr = 0.0025
         self.opacity_lr = 0.05
         self.scaling_lr = 0.005
         self.rotation_lr = 0.001
         self.percent_dense = 0.01
-        
-        self.densification_interval = 100  ###
-        self.opacity_reset_interval = 10000 ###
+
+        self.densification_interval = 100
+        self.opacity_reset_interval = 10000
         self.densify_from_iter = 500
         self.densify_until_iter = 15_000
         self.densify_grad_threshold = 0.0002
@@ -108,7 +113,7 @@ class GSParams:
 
         self.lambda_dssim = 0.2
         self.lambda_lpips = 0
-        
+
         self.densify_grad_threshold_coarse = 0.0002
         self.densify_grad_threshold_fine_init = 0.0002
         self.densify_grad_threshold_after = 0.0002
@@ -121,7 +126,7 @@ class GSParams:
         self.pruning_interval = 100
 
 
-# class GSParams: 
+# class GSParams:
 #     def __init__(self):
 #         self.sh_degree = 3
 #         self.images = "images"
@@ -132,9 +137,9 @@ class GSParams:
 #         self.use_depth = False
 
 #         self.iterations = 8990#3_000
-        
+
 #         self.iterations_4d = 30_000
-        
+
 #         self.position_lr_init = 0.00016
 #         self.position_lr_final = 0.0000016
 #         self.position_lr_delay_mult = 0.01
@@ -144,7 +149,7 @@ class GSParams:
 #         self.scaling_lr = 0.005
 #         self.rotation_lr = 0.001
 #         self.percent_dense = 0.01
-        
+
 #         self.densification_interval = 100
 #         self.opacity_reset_interval = 10000
 #         self.densify_from_iter = 500
@@ -157,7 +162,7 @@ class GSParams:
 
 #         self.lambda_dssim = 0.2
 #         self.lambda_lpips = 0
-        
+
 #         self.densify_grad_threshold_coarse = 0.0002
 #         self.densify_grad_threshold_fine_init = 0.0002
 #         self.densify_grad_threshold_after = 0.0002
@@ -170,39 +175,40 @@ class GSParams:
 #         self.pruning_interval = 100
 
 
-
 def fov2focal(fov, pixels):
     return pixels / (2 * math.tan(fov / 2))
 
+
 def focal2fov(focal, pixels):
-    return 2*math.atan(pixels/(2*focal))
+    return 2 * math.atan(pixels / (2 * focal))
 
 
 class CameraParams:
     def __init__(self, H: int = 512, W: int = 512, fov=90):
         self.H = H
         self.W = W
-        
+
         self.fovx = math.radians(fov)
         self.fovy = self.H * self.fovx / self.W
 
-        # self.fovy = math.radians(fov)        
-        # self.fovx = self.W * self.fovy / self.H        
+        # self.fovy = math.radians(fov)
+        # self.fovx = self.W * self.fovy / self.H
 
         self.fov = (self.fovx, self.fovy)
         self.fov_deg = fov
-        
-        
-        self.fx = fov2focal(self.fovx, self.W) 
+
+        self.fx = fov2focal(self.fovx, self.W)
         self.fy = fov2focal(self.fovy, self.H)
-        
+
         # print("focal",self.fx, self.fy)
-        
-        self.K = np.array([
-            [self.fx, 0., self.W/2],
-            [0., self.fy, self.H/2],
-            [0.,      0.,       1.],
-        ]).astype(np.float32)
+
+        self.K = np.array(
+            [
+                [self.fx, 0.0, self.W / 2],
+                [0.0, self.fy, self.H / 2],
+                [0.0, 0.0, 1.0],
+            ]
+        ).astype(np.float32)
 
         # self.H = H
         # self.W = W
@@ -213,4 +219,3 @@ class CameraParams:
         #     [0., self.focal[1], self.H/2],
         #     [0.,            0.,       1.],
         # ]).astype(np.float32)
-

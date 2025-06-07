@@ -4,7 +4,7 @@
 # --------------------------------------------------------
 # DPT head for ViTs
 # --------------------------------------------------------
-# References: 
+# References:
 # https://github.com/isl-org/DPT
 # https://github.com/EPFL-VILAB/MultiMAE/blob/main/multimae/output_adapters.py
 
@@ -14,8 +14,10 @@ import torch.nn.functional as F
 from einops import rearrange, repeat
 from typing import Union, Tuple, Iterable, List, Optional, Dict
 
+
 def pair(t):
     return t if isinstance(t, tuple) else (t, t)
+
 
 def make_scratch(in_shape, out_shape, groups=1, expand=False):
     scratch = nn.Module()
@@ -24,7 +26,7 @@ def make_scratch(in_shape, out_shape, groups=1, expand=False):
     out_shape2 = out_shape
     out_shape3 = out_shape
     out_shape4 = out_shape
-    if expand == True:
+    if expand:
         out_shape1 = out_shape
         out_shape2 = out_shape * 2
         out_shape3 = out_shape * 4
@@ -67,14 +69,17 @@ def make_scratch(in_shape, out_shape, groups=1, expand=False):
         groups=groups,
     )
 
-    scratch.layer_rn = nn.ModuleList([
-        scratch.layer1_rn,
-        scratch.layer2_rn,
-        scratch.layer3_rn,
-        scratch.layer4_rn,
-    ])
+    scratch.layer_rn = nn.ModuleList(
+        [
+            scratch.layer1_rn,
+            scratch.layer2_rn,
+            scratch.layer3_rn,
+            scratch.layer4_rn,
+        ]
+    )
 
     return scratch
+
 
 class ResidualConvUnit_custom(nn.Module):
     """Residual convolution module."""
@@ -110,7 +115,7 @@ class ResidualConvUnit_custom(nn.Module):
             groups=self.groups,
         )
 
-        if self.bn == True:
+        if self.bn:
             self.bn1 = nn.BatchNorm2d(features)
             self.bn2 = nn.BatchNorm2d(features)
 
@@ -128,18 +133,19 @@ class ResidualConvUnit_custom(nn.Module):
 
         out = self.activation(x)
         out = self.conv1(out)
-        if self.bn == True:
+        if self.bn:
             out = self.bn1(out)
 
         out = self.activation(out)
         out = self.conv2(out)
-        if self.bn == True:
+        if self.bn:
             out = self.bn2(out)
 
         if self.groups > 1:
             out = self.conv_merge(out)
 
         return self.skip_add.add(out, x)
+
 
 class FeatureFusionBlock_custom(nn.Module):
     """Feature fusion block."""
@@ -168,7 +174,7 @@ class FeatureFusionBlock_custom(nn.Module):
 
         self.expand = expand
         out_features = features
-        if self.expand == True:
+        if self.expand:
             out_features = features // 2
 
         self.out_conv = nn.Conv2d(
@@ -196,7 +202,12 @@ class FeatureFusionBlock_custom(nn.Module):
         if len(xs) == 2:
             res = self.resConfUnit1(xs[1])
             if self.width_ratio != 1:
-                res = F.interpolate(res, size=(output.shape[2], output.shape[3]), mode='bilinear')
+                res = F.interpolate(
+                    res,
+                    size=(
+                        output.shape[2],
+                        output.shape[3]),
+                    mode="bilinear")
 
             output = self.skip_add.add(output, res)
             # output += res
@@ -205,17 +216,27 @@ class FeatureFusionBlock_custom(nn.Module):
 
         if self.width_ratio != 1:
             # and output.shape[3] < self.width_ratio * output.shape[2]
-            #size=(image.shape[])
-            if (output.shape[3] / output.shape[2]) < (2 / 3) * self.width_ratio:
+            # size=(image.shape[])
+            if (output.shape[3] / output.shape[2]
+                    ) < (2 / 3) * self.width_ratio:
                 shape = 3 * output.shape[3]
             else:
                 shape = int(self.width_ratio * 2 * output.shape[2])
-            output  = F.interpolate(output, size=(2* output.shape[2], shape), mode='bilinear')
+            output = F.interpolate(
+                output,
+                size=(
+                    2 * output.shape[2],
+                    shape),
+                mode="bilinear")
         else:
-            output = nn.functional.interpolate(output, scale_factor=2,
-                    mode="bilinear", align_corners=self.align_corners)
+            output = nn.functional.interpolate(
+                output,
+                scale_factor=2,
+                mode="bilinear",
+                align_corners=self.align_corners)
         output = self.out_conv(output)
         return output
+
 
 def make_fusion_block(features, use_bn, width_ratio=1):
     return FeatureFusionBlock_custom(
@@ -227,6 +248,7 @@ def make_fusion_block(features, use_bn, width_ratio=1):
         align_corners=True,
         width_ratio=width_ratio,
     )
+
 
 class Interpolate(nn.Module):
     """Interpolation module."""
@@ -261,6 +283,7 @@ class Interpolate(nn.Module):
 
         return x
 
+
 class DPTOutputAdapter(nn.Module):
     """DPT output adapter.
 
@@ -277,20 +300,22 @@ class DPTOutputAdapter(nn.Module):
     :param dim_tokens_enc:  Dimension of tokens coming from encoder
     """
 
-    def __init__(self,
-                 num_channels: int = 1,
-                 stride_level: int = 1,
-                 patch_size: Union[int, Tuple[int, int]] = 16,
-                 main_tasks: Iterable[str] = ('rgb',),
-                 hooks: List[int] = [2, 5, 8, 11],
-                 layer_dims: List[int] = [96, 192, 384, 768],
-                 feature_dim: int = 256,
-                 last_dim: int = 32,
-                 use_bn: bool = False,
-                 dim_tokens_enc: Optional[int] = None,
-                 head_type: str = 'regression',
-                 output_width_ratio=1,
-                 **kwargs):
+    def __init__(
+        self,
+        num_channels: int = 1,
+        stride_level: int = 1,
+        patch_size: Union[int, Tuple[int, int]] = 16,
+        main_tasks: Iterable[str] = ("rgb",),
+        hooks: List[int] = [2, 5, 8, 11],
+        layer_dims: List[int] = [96, 192, 384, 768],
+        feature_dim: int = 256,
+        last_dim: int = 32,
+        use_bn: bool = False,
+        dim_tokens_enc: Optional[int] = None,
+        head_type: str = "regression",
+        output_width_ratio=1,
+        **kwargs
+    ):
         super().__init__()
         self.num_channels = num_channels
         self.stride_level = stride_level
@@ -299,38 +324,75 @@ class DPTOutputAdapter(nn.Module):
         self.hooks = hooks
         self.layer_dims = layer_dims
         self.feature_dim = feature_dim
-        self.dim_tokens_enc = dim_tokens_enc * len(self.main_tasks) if dim_tokens_enc is not None else None
+        self.dim_tokens_enc = dim_tokens_enc * \
+            len(self.main_tasks) if dim_tokens_enc is not None else None
         self.head_type = head_type
 
         # Actual patch height and width, taking into account stride of input
         self.P_H = max(1, self.patch_size[0] // stride_level)
         self.P_W = max(1, self.patch_size[1] // stride_level)
 
-        self.scratch = make_scratch(layer_dims, feature_dim, groups=1, expand=False)
+        self.scratch = make_scratch(
+            layer_dims, feature_dim, groups=1, expand=False)
 
-        self.scratch.refinenet1 = make_fusion_block(feature_dim, use_bn, output_width_ratio)
-        self.scratch.refinenet2 = make_fusion_block(feature_dim, use_bn, output_width_ratio)
-        self.scratch.refinenet3 = make_fusion_block(feature_dim, use_bn, output_width_ratio)
-        self.scratch.refinenet4 = make_fusion_block(feature_dim, use_bn, output_width_ratio)
+        self.scratch.refinenet1 = make_fusion_block(
+            feature_dim, use_bn, output_width_ratio)
+        self.scratch.refinenet2 = make_fusion_block(
+            feature_dim, use_bn, output_width_ratio)
+        self.scratch.refinenet3 = make_fusion_block(
+            feature_dim, use_bn, output_width_ratio)
+        self.scratch.refinenet4 = make_fusion_block(
+            feature_dim, use_bn, output_width_ratio)
 
-        if self.head_type == 'regression':
+        if self.head_type == "regression":
             # The "DPTDepthModel" head
             self.head = nn.Sequential(
-                nn.Conv2d(feature_dim, feature_dim // 2, kernel_size=3, stride=1, padding=1),
-                Interpolate(scale_factor=2, mode="bilinear", align_corners=True),
-                nn.Conv2d(feature_dim // 2, last_dim, kernel_size=3, stride=1, padding=1),
+                nn.Conv2d(
+                    feature_dim,
+                    feature_dim // 2,
+                    kernel_size=3,
+                    stride=1,
+                    padding=1),
+                Interpolate(
+                    scale_factor=2,
+                    mode="bilinear",
+                    align_corners=True),
+                nn.Conv2d(
+                    feature_dim // 2,
+                    last_dim,
+                    kernel_size=3,
+                    stride=1,
+                    padding=1),
                 nn.ReLU(True),
-                nn.Conv2d(last_dim, self.num_channels, kernel_size=1, stride=1, padding=0)
+                nn.Conv2d(
+                    last_dim,
+                    self.num_channels,
+                    kernel_size=1,
+                    stride=1,
+                    padding=0),
             )
-        elif self.head_type == 'semseg':
+        elif self.head_type == "semseg":
             # The "DPTSegmentationModel" head
             self.head = nn.Sequential(
-                nn.Conv2d(feature_dim, feature_dim, kernel_size=3, padding=1, bias=False),
+                nn.Conv2d(
+                    feature_dim,
+                    feature_dim,
+                    kernel_size=3,
+                    padding=1,
+                    bias=False),
                 nn.BatchNorm2d(feature_dim) if use_bn else nn.Identity(),
                 nn.ReLU(True),
-                nn.Dropout(0.1, False),
-                nn.Conv2d(feature_dim, self.num_channels, kernel_size=1),
-                Interpolate(scale_factor=2, mode="bilinear", align_corners=True),
+                nn.Dropout(
+                    0.1,
+                    False),
+                nn.Conv2d(
+                    feature_dim,
+                    self.num_channels,
+                    kernel_size=1),
+                Interpolate(
+                    scale_factor=2,
+                    mode="bilinear",
+                    align_corners=True),
             )
         else:
             raise ValueError('DPT head_type must be "regression" or "semseg".')
@@ -345,47 +407,62 @@ class DPTOutputAdapter(nn.Module):
 
         :param dim_tokens_enc: Dimension of tokens coming from encoder
         """
-        #print(dim_tokens_enc)
+        # print(dim_tokens_enc)
 
         # Set up activation postprocessing layers
         if isinstance(dim_tokens_enc, int):
             dim_tokens_enc = 4 * [dim_tokens_enc]
 
-        self.dim_tokens_enc = [dt * len(self.main_tasks) for dt in dim_tokens_enc]
+        self.dim_tokens_enc = [dt * len(self.main_tasks)
+                               for dt in dim_tokens_enc]
 
         self.act_1_postprocess = nn.Sequential(
             nn.Conv2d(
                 in_channels=self.dim_tokens_enc[0],
                 out_channels=self.layer_dims[0],
-                kernel_size=1, stride=1, padding=0,
+                kernel_size=1,
+                stride=1,
+                padding=0,
             ),
             nn.ConvTranspose2d(
                 in_channels=self.layer_dims[0],
                 out_channels=self.layer_dims[0],
-                kernel_size=4, stride=4, padding=0,
-                bias=True, dilation=1, groups=1,
-            )
+                kernel_size=4,
+                stride=4,
+                padding=0,
+                bias=True,
+                dilation=1,
+                groups=1,
+            ),
         )
 
         self.act_2_postprocess = nn.Sequential(
             nn.Conv2d(
                 in_channels=self.dim_tokens_enc[1],
                 out_channels=self.layer_dims[1],
-                kernel_size=1, stride=1, padding=0,
+                kernel_size=1,
+                stride=1,
+                padding=0,
             ),
             nn.ConvTranspose2d(
                 in_channels=self.layer_dims[1],
                 out_channels=self.layer_dims[1],
-                kernel_size=2, stride=2, padding=0,
-                bias=True, dilation=1, groups=1,
-            )
+                kernel_size=2,
+                stride=2,
+                padding=0,
+                bias=True,
+                dilation=1,
+                groups=1,
+            ),
         )
 
         self.act_3_postprocess = nn.Sequential(
             nn.Conv2d(
                 in_channels=self.dim_tokens_enc[2],
                 out_channels=self.layer_dims[2],
-                kernel_size=1, stride=1, padding=0,
+                kernel_size=1,
+                stride=1,
+                padding=0,
             )
         )
 
@@ -393,21 +470,25 @@ class DPTOutputAdapter(nn.Module):
             nn.Conv2d(
                 in_channels=self.dim_tokens_enc[3],
                 out_channels=self.layer_dims[3],
-                kernel_size=1, stride=1, padding=0,
+                kernel_size=1,
+                stride=1,
+                padding=0,
             ),
             nn.Conv2d(
                 in_channels=self.layer_dims[3],
                 out_channels=self.layer_dims[3],
-                kernel_size=3, stride=2, padding=1,
-            )
+                kernel_size=3,
+                stride=2,
+                padding=1,
+            ),
         )
 
-        self.act_postprocess = nn.ModuleList([
-            self.act_1_postprocess,
-            self.act_2_postprocess,
-            self.act_3_postprocess,
-            self.act_4_postprocess
-        ])
+        self.act_postprocess = nn.ModuleList(
+            [
+                self.act_1_postprocess,
+                self.act_2_postprocess,
+                self.act_3_postprocess,
+                self.act_4_postprocess])
 
     def adapt_tokens(self, encoder_tokens):
         # Adapt tokens
@@ -417,10 +498,10 @@ class DPTOutputAdapter(nn.Module):
         return x
 
     def forward(self, encoder_tokens: List[torch.Tensor], image_size):
-            #input_info: Dict):
-        assert self.dim_tokens_enc is not None, 'Need to call init(dim_tokens_enc) function first'
+        # input_info: Dict):
+        assert self.dim_tokens_enc is not None, "Need to call init(dim_tokens_enc) function first"
         H, W = image_size
-        
+
         # Number of patches in height and width
         N_H = H // (self.stride_level * self.P_H)
         N_W = W // (self.stride_level * self.P_W)
@@ -432,11 +513,17 @@ class DPTOutputAdapter(nn.Module):
         layers = [self.adapt_tokens(l) for l in layers]
 
         # Reshape tokens to spatial representation
-        layers = [rearrange(l, 'b (nh nw) c -> b c nh nw', nh=N_H, nw=N_W) for l in layers]
+        layers = [
+            rearrange(
+                l,
+                "b (nh nw) c -> b c nh nw",
+                nh=N_H,
+                nw=N_W) for l in layers]
 
         layers = [self.act_postprocess[idx](l) for idx, l in enumerate(layers)]
         # Project layers to chosen feature dim
-        layers = [self.scratch.layer_rn[idx](l) for idx, l in enumerate(layers)]
+        layers = [self.scratch.layer_rn[idx](l)
+                  for idx, l in enumerate(layers)]
 
         # Fuse layers using refinement stages
         path_4 = self.scratch.refinenet4(layers[3])

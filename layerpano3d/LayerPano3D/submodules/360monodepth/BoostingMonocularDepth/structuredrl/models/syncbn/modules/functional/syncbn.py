@@ -7,6 +7,7 @@ code referenced from : https://github.com/mapillary/inplace_abn
 
 /*****************************************************************************/
 """
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -34,8 +35,18 @@ def _check_contiguous(*args):
 class BatchNorm2dSyncFunc(Function):
 
     @classmethod
-    def forward(cls, ctx, x, weight, bias, running_mean, running_var,
-                extra, compute_stats=True, momentum=0.1, eps=1e-05):
+    def forward(
+            cls,
+            ctx,
+            x,
+            weight,
+            bias,
+            running_mean,
+            running_var,
+            extra,
+            compute_stats=True,
+            momentum=0.1,
+            eps=1e-05):
         # Save context
         if extra is not None:
             cls._parse_extra(ctx, extra)
@@ -67,7 +78,8 @@ class BatchNorm2dSyncFunc(Function):
                 uvar = sumvar / (N - 1)
                 # master : broadcast global mean, variance to all slaves
                 tensors = comm.broadcast_coalesced(
-                    (mean, uvar, var), [mean.get_device()] + ctx.worker_ids)
+                    (mean, uvar, var), [
+                        mean.get_device()] + ctx.worker_ids)
                 for ts, queue in zip(tensors[1:], ctx.worker_queues):
                     queue.put(ts)
             else:
@@ -89,8 +101,14 @@ class BatchNorm2dSyncFunc(Function):
         _check_contiguous(output, x, mean, var, weight, bias)
         # do batch norm forward
         _lib_bn.syncbn_forward_cuda(
-            output, x, weight if weight is not None else x.new(),
-            bias if bias is not None else x.new(), mean, var, ctx.eps)
+            output,
+            x,
+            weight if weight is not None else x.new(),
+            bias if bias is not None else x.new(),
+            mean,
+            var,
+            ctx.eps,
+        )
         return output
 
     @staticmethod
@@ -134,7 +152,8 @@ class BatchNorm2dSyncFunc(Function):
             sum_dz_xhat /= ctx.N
             # master : broadcast global stats
             tensors = comm.broadcast_coalesced(
-                (sum_dz, sum_dz_xhat), [mean.get_device()] + ctx.worker_ids)
+                (sum_dz, sum_dz_xhat), [
+                    mean.get_device()] + ctx.worker_ids)
             for ts, queue in zip(tensors[1:], ctx.worker_queues):
                 queue.put(ts)
         else:
@@ -146,15 +165,21 @@ class BatchNorm2dSyncFunc(Function):
 
         # do batch norm backward
         _lib_bn.syncbn_backard_cuda(
-            dz, x, weight if weight is not None else dz.new(),
+            dz,
+            x,
+            weight if weight is not None else dz.new(),
             bias if bias is not None else dz.new(),
-            mean, var, sum_dz, sum_dz_xhat,
+            mean,
+            var,
+            sum_dz,
+            sum_dz_xhat,
             dx if dx is not None else dz.new(),
             dweight if dweight is not None else dz.new(),
-            dbias if dbias is not None else dz.new(), ctx.eps)
+            dbias if dbias is not None else dz.new(),
+            ctx.eps,
+        )
 
-        return dx, dweight, dbias, None, None, None, \
-            None, None, None, None, None
+        return dx, dweight, dbias, None, None, None, None, None, None, None, None
 
     @staticmethod
     def _parse_extra(ctx, extra):
@@ -166,6 +191,7 @@ class BatchNorm2dSyncFunc(Function):
         else:
             ctx.master_queue = extra["master_queue"]
             ctx.worker_queue = extra["worker_queue"]
+
 
 batchnorm2d_sync = BatchNorm2dSyncFunc.apply
 

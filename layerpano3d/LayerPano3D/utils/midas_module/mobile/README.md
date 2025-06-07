@@ -55,7 +55,7 @@ git clone --depth 1 --branch v1.6.0 https://github.com/onnx/onnx-tensorflow
 
 This repository contains code to compute depth from a single image. It accompanies our [paper](https://arxiv.org/abs/1907.01341v3):
 
->Towards Robust Monocular Depth Estimation: Mixing Datasets for Zero-shot Cross-dataset Transfer  
+>Towards Robust Monocular Depth Estimation: Mixing Datasets for Zero-shot Cross-dataset Transfer
 René Ranftl, Katrin Lasinger, David Hafner, Konrad Schindler, Vladlen Koltun
 
 Please cite our paper if you use this code or any of the models:
@@ -67,4 +67,3 @@ Please cite our paper if you use this code or any of the models:
 	year      = {2020},
 }
 ```
-

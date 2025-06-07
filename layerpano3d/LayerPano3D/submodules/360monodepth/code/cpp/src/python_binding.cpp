@@ -211,11 +211,11 @@ int depthmap_stitch(
 	depthmap_stitcher->weight_scale = terms_weight[2];		  // scale term lambda
 	LOG(INFO) << "Terms weights of re-projection:" << depthmap_stitcher->weight_reprojection << ",\tsmooth:" << depthmap_stitcher->weight_smooth << ",\tscale:" << depthmap_stitcher->weight_scale;
 
-	// set if use the per-pixel/grid weight 
+	// set if use the per-pixel/grid weight
 	depthmap_stitcher->projection_per_pixelcost_enable = reproj_perpixel_enable;
 	depthmap_stitcher->smooth_pergrid_enable = smooth_pergrid_enable;
 	LOG(INFO) << "projection_per_pixelcost_enable : " << reproj_perpixel_enable;
-	LOG(INFO) << "smooth_pergrid_enable : " << smooth_pergrid_enable;	
+	LOG(INFO) << "smooth_pergrid_enable : " << smooth_pergrid_enable;
 
 	// convert external data to internal data format
 	depthmap_stitcher->initial_data(root_dir, depthmap_original, depthmap_original_ico_index, pixels_corresponding_list);

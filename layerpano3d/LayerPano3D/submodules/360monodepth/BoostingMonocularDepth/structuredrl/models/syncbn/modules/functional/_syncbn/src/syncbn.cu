@@ -325,4 +325,3 @@ extern "C" int _syncbn_backward_cuda(
     else
         return 1;
 }
-

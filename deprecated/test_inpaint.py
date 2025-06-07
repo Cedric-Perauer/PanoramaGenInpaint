@@ -6,18 +6,23 @@ import fire
 
 
 def load_pipeline(four_bit=False):
-    orig_pipeline = DiffusionPipeline.from_pretrained("black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16)
+    orig_pipeline = DiffusionPipeline.from_pretrained(
+        "black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16)
     if four_bit:
         print("Using four bit.")
         transformer = FluxTransformer2DModel.from_pretrained(
-            "sayakpaul/FLUX.1-Fill-dev-nf4", subfolder="transformer", torch_dtype=torch.bfloat16
-        )
+            "sayakpaul/FLUX.1-Fill-dev-nf4",
+            subfolder="transformer",
+            torch_dtype=torch.bfloat16)
         text_encoder_2 = T5EncoderModel.from_pretrained(
-            "sayakpaul/FLUX.1-Fill-dev-nf4", subfolder="text_encoder_2", torch_dtype=torch.bfloat16
-        )
+            "sayakpaul/FLUX.1-Fill-dev-nf4",
+            subfolder="text_encoder_2",
+            torch_dtype=torch.bfloat16)
         pipeline = FluxFillPipeline.from_pipe(
-            orig_pipeline, transformer=transformer, text_encoder_2=text_encoder_2, torch_dtype=torch.bfloat16
-        )
+            orig_pipeline,
+            transformer=transformer,
+            text_encoder_2=text_encoder_2,
+            torch_dtype=torch.bfloat16)
     else:
         transformer = FluxTransformer2DModel.from_pretrained(
             "black-forest-labs/FLUX.1-Fill-dev",
@@ -25,15 +30,20 @@ def load_pipeline(four_bit=False):
             revision="refs/pr/4",
             torch_dtype=torch.bfloat16,
         )
-        pipeline = FluxFillPipeline.from_pipe(orig_pipeline, transformer=transformer, torch_dtype=torch.bfloat16)
+        pipeline = FluxFillPipeline.from_pipe(
+            orig_pipeline,
+            transformer=transformer,
+            torch_dtype=torch.bfloat16)
 
     pipeline.enable_model_cpu_offload()
     return pipeline
 
 
 def load_conditions():
-    image = load_image("https://huggingface.co/datasets/YiYiXu/testing-images/resolve/main/cup.png")
-    mask = load_image("https://huggingface.co/datasets/YiYiXu/testing-images/resolve/main/cup_mask.png")
+    image = load_image(
+        "https://huggingface.co/datasets/YiYiXu/testing-images/resolve/main/cup.png")
+    mask = load_image(
+        "https://huggingface.co/datasets/YiYiXu/testing-images/resolve/main/cup_mask.png")
     return image, mask
 
 

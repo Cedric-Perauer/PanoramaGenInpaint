@@ -22,7 +22,7 @@ wget https://raw.githubusercontent.com/isl-org/MiDaS/master/ros/additions/instal
 ./install_ros_melodic_ubuntu_17_18.sh
 ```
 
-or Noetic for Ubuntu 20.04: 
+or Noetic for Ubuntu 20.04:
 
 ```bash
 wget https://raw.githubusercontent.com/isl-org/MiDaS/master/ros/additions/install_ros_noetic_ubuntu_20.sh
@@ -35,7 +35,7 @@ wget https://raw.githubusercontent.com/isl-org/MiDaS/master/ros/additions/instal
 On **Jetson (ARM)**:
 ```bash
 wget https://nvidia.box.com/shared/static/wa34qwrwtk9njtyarwt5nvo6imenfy26.whl -O torch-1.7.0-cp36-cp36m-linux_aarch64.whl
-sudo apt-get install python3-pip libopenblas-base libopenmpi-dev 
+sudo apt-get install python3-pip libopenblas-base libopenmpi-dev
 pip3 install Cython
 pip3 install numpy torch-1.7.0-cp36-cp36m-linux_aarch64.whl
 ```
@@ -83,7 +83,7 @@ cp src/additions/do_catkin_make.sh ./do_catkin_make.sh
     * place any `test.mp4` video file to the directory `~/catkin_ws/src/`
     * run `midas` node: `~/catkin_ws/src/launch_midas_cpp.sh`
     * run test nodes in another terminal: `cd ~/catkin_ws/src && ./run_talker_listener_test.sh` and wait 30 seconds
-    
+
     (to use Python 2, run command `sed -i 's/python3/python2/' ~/catkin_ws/src/midas_cpp/scripts/*.py` )
 
 ## Mobile version of MiDaS - Monocular Depth Estimation
@@ -117,7 +117,7 @@ Inference speed excluding pre and post processing, batch=1, **Frames Per Second*
 
 This repository contains code to compute depth from a single image. It accompanies our [paper](https://arxiv.org/abs/1907.01341v3):
 
->Towards Robust Monocular Depth Estimation: Mixing Datasets for Zero-shot Cross-dataset Transfer  
+>Towards Robust Monocular Depth Estimation: Mixing Datasets for Zero-shot Cross-dataset Transfer
 René Ranftl, Katrin Lasinger, David Hafner, Konrad Schindler, Vladlen Koltun
 
 Please cite our paper if you use this code or any of the models:

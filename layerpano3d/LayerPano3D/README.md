@@ -9,13 +9,13 @@ This repository is the official implementation of LayerPano3D
 
 </br>
 
-[Shuai Yang*](https://ys-imtech.github.io/), 
-[Jing Tan*](https://sparkstj.github.io/), 
-[Mengchen Zhang](https://github.com/kszpxxzmc/), 
-[Tong Wu✉️](https://wutong16.github.io/), 
-[Yixuan Li](https://yixuanli98.github.io/), 
-[Gordon Wetzstein](https://stanford.edu/~gordonwz/), 
-[Ziwei Liu](https://liuziwei7.github.io/), 
+[Shuai Yang*](https://ys-imtech.github.io/),
+[Jing Tan*](https://sparkstj.github.io/),
+[Mengchen Zhang](https://github.com/kszpxxzmc/),
+[Tong Wu✉️](https://wutong16.github.io/),
+[Yixuan Li](https://yixuanli98.github.io/),
+[Gordon Wetzstein](https://stanford.edu/~gordonwz/),
+[Ziwei Liu](https://liuziwei7.github.io/),
 [Dahua Lin✉️](http://dahua.me/)
 
 <p style="font-size: 0.6em; margin-top: -1em">*Equal Contribution,   ✉️Corresponding author</p>
@@ -66,42 +66,42 @@ Modify `submodules/360monodepth/code/cpp/CMakeConfig.txt` Line 65, Change the pa
 ```sh
 sudo apt-get install libgtest-dev libeigen3-dev libboost-all-dev libopencv-dev libatlas-base-dev
 sudo apt-get install liblapack-dev libsuitesparse-dev libcxsparse3 libgflags-dev libgoogle-glog-dev libgtest-dev
-conda install -c conda-forge libstdcxx-ng=12  
+conda install -c conda-forge libstdcxx-ng=12
 
 # pybind11
 cd submodules/360monodepth/code/cpp/3rd_party
-git clone https://github.com/pybind/pybind11.git 
+git clone https://github.com/pybind/pybind11.git
 cd pybind11 && mkdir build && cd build
-cmake .. && make -j8 
+cmake .. && make -j8
 sudo make install
-cd ../../ 
+cd ../../
 
 # ceres-solver
 git clone -b 1.14.0 https://github.com/ceres-solver/ceres-solver
 cd ceres-solver && mkdir build && cd build
-cmake .. && make -j8 
-sudo make install 
-cd ../../../  
+cmake .. && make -j8
+sudo make install
+cd ../../../
 
 # instaOmniDepth
 mkdir build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release  ..
-make -j8 
+make -j8
 cd ../python
 python setup.py build
-python setup.py bdist_wheel 
+python setup.py bdist_wheel
 pip install dist/instaOmniDepth-0.1.0-cp39-cp39-linux_x86_64.whl # if failed, please check your file version in dist/
 ```
 
-- **Checkpoints Download**: 
+- **Checkpoints Download**:
   - Download the Panorama LoRA [checkpoint](https://huggingface.co/ysmikey/Layerpano3D-FLUX-Panorama-LoRA/resolve/main/lora_hubs/pano_lora_720*1440_v1.safetensors?download=true) and put it in the ``checkpoints`` folder. We will release more powerful and better panorama_lora_v2.safetensors() in the future, now version-1 is avaliable in [huggingface](https://huggingface.co/ysmikey/Layerpano3D-FLUX-Panorama-LoRA).
   - Download the Lama [checkpoint](https://huggingface.co/lllyasviel/Annotators/resolve/main/ControlNetLama.pth?download=true) and put it in the ``checkpoints`` folder.
   - Download the SAM model ViT-H [checkpoints](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth) and put it in the ``checkpoints`` folder.
   - Download the Depth-Anything-V2-Large [checkpoints](https://huggingface.co/depth-anything/Depth-Anything-V2-Large/resolve/main/depth_anything_v2_vitl.pth?download=true) and put it in the ``checkpoints`` folder.
   - Download the Infusion [checkpoint](https://huggingface.co/Johanan0528/Infusion/tree/main) and put it in the ``checkpoints/Infusion`` folder.
   - [**Optional**] Download the PASD related checkpoints. **If you do not need SR panorama for better visual quality, this step can be skip**.
-    - Download SD1.5 models from [huggingface](https://huggingface.co/stable-diffusion-v1-5/stable-diffusion-v1-5) and put them into ``checkpoints/pasd/stable-diffusion-v1-5``. 
-    - Download PASD pre-trained models [pasd](https://public-vigen-video.oss-cn-shanghai.aliyuncs.com/robin/models/PASD/pasd.zip) and put them into ``checkpoints/pasd/checkpoint-100000``. 
+    - Download SD1.5 models from [huggingface](https://huggingface.co/stable-diffusion-v1-5/stable-diffusion-v1-5) and put them into ``checkpoints/pasd/stable-diffusion-v1-5``.
+    - Download PASD pre-trained models [pasd](https://public-vigen-video.oss-cn-shanghai.aliyuncs.com/robin/models/PASD/pasd.zip) and put them into ``checkpoints/pasd/checkpoint-100000``.
 
 
 ### 🌌 Inference:
@@ -123,15 +123,15 @@ bash render.sh
 ### 🌉 Visualize `.ply` files
 
 
-We recommend use [@playcanvas](https://github.com/playcanvas)'s [Super-Splat](https://github.com/playcanvas/super-splat) project ([Live demo](https://playcanvas.com/super-splat)). 
+We recommend use [@playcanvas](https://github.com/playcanvas)'s [Super-Splat](https://github.com/playcanvas/super-splat) project ([Live demo](https://playcanvas.com/super-splat)).
 ![](assets/supersplat.png)
 
 
 
 ## 📧 Contact Us
-Shuai Yang: [yang_shuai@sjtu.edu.cn](mailto:yang_shuai@sjtu.edu.cn)  
-Jing Tan: [tj023@ie.cuhk.edu.hk](mailto:tj023@ie.cuhk.edu.hk)  
-Tong Wu: [wutong16@stanford.edu](mailto:wutong16@stanford.edu)  
+Shuai Yang: [yang_shuai@sjtu.edu.cn](mailto:yang_shuai@sjtu.edu.cn)
+Jing Tan: [tj023@ie.cuhk.edu.hk](mailto:tj023@ie.cuhk.edu.hk)
+Tong Wu: [wutong16@stanford.edu](mailto:wutong16@stanford.edu)
 
 ## ✒️ Citation
 If you find our work helpful for your research, please consider giving a star ⭐ and citation 📝
@@ -144,5 +144,3 @@ If you find our work helpful for your research, please consider giving a star �
   year={2024}
 }
 ```
-
-

@@ -5,7 +5,9 @@ Test for BatchNorm2dSync with multi-gpu
 
 /*****************************************************************************/
 """
+
 from __future__ import absolute_import
+from modules import nn as NN
 from __future__ import division
 from __future__ import print_function
 
@@ -14,8 +16,8 @@ import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
+
 sys.path.append("./")
-from modules import nn as NN
 
 torch.backends.cudnn.deterministic = True
 
@@ -24,12 +26,13 @@ def init_weight(model):
     for m in model.modules():
         if isinstance(m, nn.Conv2d):
             n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-            m.weight.data.normal_(0, np.sqrt(2. / n))
+            m.weight.data.normal_(0, np.sqrt(2.0 / n))
         elif isinstance(m, NN.BatchNorm2d) or isinstance(m, nn.BatchNorm2d):
             m.weight.data.fill_(1)
             m.bias.data.zero_()
         elif isinstance(m, nn.Linear):
             m.bias.data.zero_()
+
 
 num_gpu = torch.cuda.device_count()
 print("num_gpu={}".format(num_gpu))

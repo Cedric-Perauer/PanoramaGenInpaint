@@ -52,8 +52,11 @@ def edge_pad(img, mask, mode=1):
         nmask = mask.copy()
         nmask[nmask > 0] = 1
         res = scipy.signal.convolve2d(
-            nmask, kernel, mode="same", boundary="fill", fillvalue=1
-        )
+            nmask,
+            kernel,
+            mode="same",
+            boundary="fill",
+            fillvalue=1)
         res[nmask < 1] = 0
         res[res == 9] = 0
         res[res > 0] = 1
@@ -89,14 +92,13 @@ def edge_pad(img, mask, mode=1):
         ylst, xlst = nmask.nonzero()
         yt, xt = ylst.min(), xlst.min()
         yb, xb = ylst.max(), xlst.max()
-        content = img[yt : yb + 1, xt : xb + 1]
+        content = img[yt: yb + 1, xt: xb + 1]
         img = np.pad(
             content,
             ((yt, mask.shape[0] - yb - 1), (xt, mask.shape[1] - xb - 1), (0, 0)),
             mode="edge",
         )
     return img, mask
-
 
 
 functbl = {

@@ -4,8 +4,9 @@ from diffusers.pipelines import StableDiffusion3ControlNetInpaintingPipeline
 from diffusers.models.controlnet_sd3 import SD3ControlNetModel
 
 controlnet = SD3ControlNetModel.from_pretrained(
-    "alimama-creative/SD3-Controlnet-Inpainting", use_safetensors=True, extra_conditioning_channels=1
-)
+    "alimama-creative/SD3-Controlnet-Inpainting",
+    use_safetensors=True,
+    extra_conditioning_channels=1)
 pipe = StableDiffusion3ControlNetInpaintingPipeline.from_pretrained(
     "stabilityai/stable-diffusion-3-medium-diffusers",
     controlnet=controlnet,
@@ -16,11 +17,9 @@ pipe.controlnet.to(torch.float16)
 pipe.to("cuda")
 
 image = load_image(
-    "https://huggingface.co/alimama-creative/SD3-Controlnet-Inpainting/resolve/main/images/dog.png"
-)
+    "https://huggingface.co/alimama-creative/SD3-Controlnet-Inpainting/resolve/main/images/dog.png")
 mask = load_image(
-    "https://huggingface.co/alimama-creative/SD3-Controlnet-Inpainting/resolve/main/images/dog_mask.png"
-)
+    "https://huggingface.co/alimama-creative/SD3-Controlnet-Inpainting/resolve/main/images/dog_mask.png")
 width = 1024
 height = 1024
 prompt = "A cat is sitting next to a puppy."

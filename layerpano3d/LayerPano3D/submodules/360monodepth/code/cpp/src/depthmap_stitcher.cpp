@@ -221,7 +221,7 @@ void DepthmapStitcher::get_align_coeff(std::vector<cv::Mat>& coeff)
 {
 	for (int i = 0; i < coeff_so.coeff_scale_mat.size(); i++)
 	{
-		
+
 		coeff.push_back(coeff_so.coeff_scale_mat[i].clone());
 		coeff.push_back(coeff_so.coeff_offset_mat[i].clone());
 	}
@@ -479,7 +479,7 @@ void AlignCoeff::load(const std::string& file_path)
 	pt::ptree root;
 	pt::read_json(file_path, root);
 
-	// parser *.json 
+	// parser *.json
 	int scale_mat_counter = -1;
 	int offset_mat_counter =-1;
 	for (pt::ptree::value_type& key_value_pair : root)
@@ -497,7 +497,7 @@ void AlignCoeff::load(const std::string& file_path)
 		}
 		else if (key.find("coeff_mat_") != std::string::npos)
 		{
-			// parser the coefficient 
+			// parser the coefficient
 			for (pt::ptree::value_type& mat_term : root.get_child(key))
 			{
 				std::string key = mat_term.first;
@@ -556,7 +556,7 @@ void AlignCoeff::load(const std::string& file_path)
 						coeff_data = coeff_offset_mat[offset_mat_counter];
 
 					int byte_size = mat_width * mat_height * sizeof(double);
-					// memcpy_s(coeff_data.data, coeff_data.total() * coeff_data.elemSize() 
+					// memcpy_s(coeff_data.data, coeff_data.total() * coeff_data.elemSize()
 					// 	, mat_data_json.data, coeff_data.total() * coeff_data.elemSize());
 					memcpy(coeff_data.data, mat_data_json.data, coeff_data.total() * coeff_data.elemSize());
 				}
@@ -597,4 +597,3 @@ std::ostream& operator<<(std::ostream& os, const AlignCoeff& di)
 	}
 	return os;
 }
-

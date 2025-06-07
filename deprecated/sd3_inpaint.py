@@ -4,19 +4,26 @@ from torchvision import transforms
 from diffusers import StableDiffusion3InpaintPipeline
 from diffusers.utils import load_image
 
+
 def preprocess_image(image):
     image = image.convert("RGB")
-    image = transforms.CenterCrop((image.size[1] // 64 * 64, image.size[0] // 64 * 64))(image)
+    image = transforms.CenterCrop(
+        (image.size[1] // 64 * 64,
+         image.size[0] // 64 * 64))(image)
     image = transforms.ToTensor()(image)
     image = image.unsqueeze(0).to("cuda")
     return image
 
+
 def preprocess_mask(mask):
     mask = mask.convert("L")
-    mask = transforms.CenterCrop((mask.size[1] // 64 * 64, mask.size[0] // 64 * 64))(mask)
+    mask = transforms.CenterCrop(
+        (mask.size[1] // 64 * 64,
+         mask.size[0] // 64 * 64))(mask)
     mask = transforms.ToTensor()(mask)
     mask = mask.to("cuda")
     return mask
+
 
 pipe = StableDiffusion3InpaintPipeline.from_pretrained(
     "stabilityai/stable-diffusion-3-medium-diffusers",
@@ -29,13 +36,10 @@ source_image = load_image(
     "https://huggingface.co/alimama-creative/SD3-Controlnet-Inpainting/resolve/main/images/dog.png"
 )
 mask = load_image(
-    "https://huggingface.co/alimama-creative/SD3-Controlnet-Inpainting/resolve/main/images/dog_mask.png"
-)
+    "https://huggingface.co/alimama-creative/SD3-Controlnet-Inpainting/resolve/main/images/dog_mask.png")
 
 source = preprocess_image(source_image)
-mask = preprocess_mask(
-    mask
-)
+mask = preprocess_mask(mask)
 
 image = pipe(
     prompt=prompt,

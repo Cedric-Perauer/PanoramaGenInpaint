@@ -34,7 +34,7 @@ python gen_layerdata.py \
 # [optional SR step]
 python pasd/run_layers_pasd.py \
     --inputs_dir "${save_dir}/layering" \
-    --upscale 2 
+    --upscale 2
 
 # [step-3]: construct layered 3D panoramas(rgb+depth)
 
@@ -60,10 +60,9 @@ elevation=0
 python -m rendering.render_video_360 \
             --save_dir "${save_dir}/scene" \
             --elevation ${elevation}
-            
+
 python -m rendering.render_video_zigzag \
         --save_dir "${save_dir}/scene"
 
 
 # apptainer exec --nv --bind /mnt:/mnt /mnt/petrelfs/yangshuai/apptainer/panodepth.sif bash run.sh
-

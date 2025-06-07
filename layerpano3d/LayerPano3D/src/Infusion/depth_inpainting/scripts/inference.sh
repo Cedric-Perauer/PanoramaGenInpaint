@@ -22,10 +22,10 @@ cd run
         --intri $intri\
         --c2w $c2w \
         --use_mask \
-        --blend \ 
-        
-        
-        
+        --blend \
+
+
+
 }
 
 inference_single_image

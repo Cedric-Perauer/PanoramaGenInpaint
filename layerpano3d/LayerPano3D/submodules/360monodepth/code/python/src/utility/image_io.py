@@ -15,7 +15,7 @@ def subimage_save_ico(subimage_list_, output_path, subimage_idx_list=None):
     """save the visualized depth map array to image file with value-bar.
 
     :param dapthe_data: The depth data.
-    :type dapthe_data: numpy 
+    :type dapthe_data: numpy
     :param output_path: the absolute path of output image.
     :type output_path: str
     :param subimage_idx_list: available subimages index list.
@@ -23,10 +23,10 @@ def subimage_save_ico(subimage_list_, output_path, subimage_idx_list=None):
     """
     # add blank image to miss subimage to fill the sub-image array
     subimage_list = None
-    if len(subimage_list_) != 20 \
-            and subimage_idx_list is not None \
-            and len(subimage_list_) == len(subimage_idx_list):
-        log.debug("The ico's sub-image size is {}, fill blank sub-images.".format(len(subimage_list_)))
+    if len(subimage_list_) != 20 and subimage_idx_list is not None and len(
+            subimage_list_) == len(subimage_idx_list):
+        log.debug(
+            "The ico's sub-image size is {}, fill blank sub-images.".format(len(subimage_list_)))
         subimage_list = [np.zeros_like(subimage_list_[0])] * 20
         for subimage_index in range(len(subimage_idx_list)):
             subimage_face_idx = subimage_idx_list[subimage_index]
@@ -48,7 +48,8 @@ def subimage_save_ico(subimage_list_, output_path, subimage_idx_list=None):
             counter = counter + 1
             #
             dispmap_index = row_index * 5 + col_index
-            im = axes[row_index, col_index].imshow(subimage_list[dispmap_index].astype(np.uint8))
+            im = axes[row_index, col_index].imshow(
+                subimage_list[dispmap_index].astype(np.uint8))
 
     figure.tight_layout()
     # plt.colorbar(im, ax=axes.ravel().tolist())
@@ -64,14 +65,14 @@ def image_read(image_file_path):
     :type image_file_path: str
     :return: the numpy array of image
     :rtype: numpy
-    """    
+    """
     if not os.path.exists(image_file_path):
         log.error("{} do not exist.".format(image_file_path))
 
     return np.asarray(Image.open(image_file_path))
 
 
-def image_show(image, title=" ",  verbose=True):
+def image_show(image, title=" ", verbose=True):
     """
     visualize the numpy array
     """
@@ -85,11 +86,16 @@ def image_show(image, title=" ",  verbose=True):
     elif len(np.shape(image)) == 2:
         print("visualize 2 channel raw data")
         images = []
-        cmap = plt.get_cmap('rainbow')
+        cmap = plt.get_cmap("rainbow")
         fig, axs = plt.subplots(nrows=1, sharex=True, figsize=(3, 5))
         axs.set_title(title)
         images.append(axs.imshow(image, cmap=cmap))
-        fig.colorbar(images[0], ax=axs, orientation='horizontal', fraction=.1, shrink=0.4)
+        fig.colorbar(
+            images[0],
+            ax=axs,
+            orientation="horizontal",
+            fraction=0.1,
+            shrink=0.4)
         plt.show()
     elif len(np.shape(image)) == 1:
         print("show 1 channels data array")
@@ -100,12 +106,14 @@ def image_show(image, title=" ",  verbose=True):
         plt.show()
 
     else:
-        print("the data channel is {}, should be visualized in advance.".format(len(np.shape(image))))
+        print("the data channel is {}, should be visualized in advance.".format(
+            len(np.shape(image))))
+
 
 def image_save(image_data, image_file_path):
     """Save numpy array as image.
 
-    :param image_data: Numpy array store image data. numpy 
+    :param image_data: Numpy array store image data. numpy
     :type image_data: numpy
     :param image_file_path: The image's path
     :type image_file_path: str
@@ -113,7 +121,9 @@ def image_save(image_data, image_file_path):
     # 0) convert the datatype
     image = None
     if image_data.dtype in [float, np.int64, int]:
-        print("saved image array type is {}, converting to uint8".format(image_data.dtype))
+        print(
+            "saved image array type is {}, converting to uint8".format(
+                image_data.dtype))
         image = image_data.astype(np.uint8)
     else:
         image = image_data
@@ -124,14 +134,15 @@ def image_save(image_data, image_file_path):
         im = Image.fromarray(image)
         im.save(image_file_path)
     else:
-        log.error("The image channel number is {}".format(image_channels_number))
+        log.error("The image channel number is {}".format(
+            image_channels_number))
 
 
 def image_show_pyramid(subimage_list):
     """save the visualized depth map array to image file with value-bar.
 
     :param dapthe_data: The depth data.
-    :type dapthe_data: numpy 
+    :type dapthe_data: numpy
     :param output_path: the absolute path of output image.
     :type output_path: str
     :param subimage_idx_list: available subimages index list.
@@ -143,16 +154,19 @@ def image_show_pyramid(subimage_list):
 
     # draw image
     figure, axes = plt.subplots(image_number, pyramid_depth)
-    for image_idx in range(0,image_number):
+    for image_idx in range(0, image_number):
         for pyramid_idx in range(0, pyramid_depth):
             axes[image_idx, pyramid_idx].get_xaxis().set_visible(False)
             axes[image_idx, pyramid_idx].get_yaxis().set_visible(False)
             #
-            dispmap_vis = depthmap_utils.depth_visual(subimage_list[pyramid_idx][image_idx])
+            dispmap_vis = depthmap_utils.depth_visual(
+                subimage_list[pyramid_idx][image_idx])
             # add sub caption
-            image_size_str = "Idx:{}, Level:{}, {}x{}".format(image_idx, pyramid_idx, dispmap_vis.shape[0], dispmap_vis.shape[1])
+            image_size_str = "Idx:{}, Level:{}, {}x{}".format(
+                image_idx, pyramid_idx, dispmap_vis.shape[0], dispmap_vis.shape[1])
             axes[image_idx, pyramid_idx].set_title(image_size_str)
-            im = axes[image_idx, pyramid_idx].imshow(dispmap_vis)#.astype(np.uint8)
+            im = axes[image_idx, pyramid_idx].imshow(
+                dispmap_vis)  # .astype(np.uint8)
 
     figure.tight_layout()
     plt.show()

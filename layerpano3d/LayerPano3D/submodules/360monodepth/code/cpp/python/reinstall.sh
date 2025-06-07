@@ -5,7 +5,7 @@ compact_vers=${split_vers[1]}${split_vers[2]}
 echo $compact_vers
 echo "== 0) build project =="
 cd ../build/
-make -j 
+make -j
 cd ../python/
 echo "== 1) remove build cache files =="
 rm -rvf build/*

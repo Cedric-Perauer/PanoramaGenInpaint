@@ -1,6 +1,6 @@
 # Copyright (C) 2022-present Naver Corporation. All rights reserved.
 # Licensed under CC BY-NC-SA 4.0 (non-commercial use only).
-# 
+#
 # --------------------------------------------------------
 # Extracting crops for pre-training
 # --------------------------------------------------------
@@ -15,27 +15,57 @@ import math
 
 
 def arg_parser():
-    parser = argparse.ArgumentParser('Generate cropped image pairs from image crop list')
+    parser = argparse.ArgumentParser(
+        "Generate cropped image pairs from image crop list")
 
-    parser.add_argument('--crops', type=str, required=True, help='crop file')
-    parser.add_argument('--root-dir', type=str, required=True, help='root directory')
-    parser.add_argument('--output-dir', type=str, required=True, help='output directory')
-    parser.add_argument('--imsize', type=int, default=256, help='size of the crops')
-    parser.add_argument('--nthread', type=int, required=True, help='number of simultaneous threads')
-    parser.add_argument('--max-subdir-levels', type=int, default=5, help='maximum number of subdirectories')
-    parser.add_argument('--ideal-number-pairs-in-dir', type=int, default=500, help='number of pairs stored in a dir')
+    parser.add_argument("--crops", type=str, required=True, help="crop file")
+    parser.add_argument(
+        "--root-dir",
+        type=str,
+        required=True,
+        help="root directory")
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        required=True,
+        help="output directory")
+    parser.add_argument(
+        "--imsize",
+        type=int,
+        default=256,
+        help="size of the crops")
+    parser.add_argument(
+        "--nthread",
+        type=int,
+        required=True,
+        help="number of simultaneous threads")
+    parser.add_argument(
+        "--max-subdir-levels",
+        type=int,
+        default=5,
+        help="maximum number of subdirectories")
+    parser.add_argument(
+        "--ideal-number-pairs-in-dir",
+        type=int,
+        default=500,
+        help="number of pairs stored in a dir")
     return parser
 
 
 def main(args):
-    listing_path = os.path.join(args.output_dir, 'listing.txt')
+    listing_path = os.path.join(args.output_dir, "listing.txt")
 
-    print(f'Loading list of crops ... ({args.nthread} threads)')
+    print(f"Loading list of crops ... ({args.nthread} threads)")
     crops, num_crops_to_generate = load_crop_file(args.crops)
 
-    print(f'Preparing jobs ({len(crops)} candidate image pairs)...')
-    num_levels = min(math.ceil(math.log(num_crops_to_generate, args.ideal_number_pairs_in_dir)), args.max_subdir_levels)
-    num_pairs_in_dir = math.ceil(num_crops_to_generate ** (1/num_levels))
+    print(f"Preparing jobs ({len(crops)} candidate image pairs)...")
+    num_levels = min(
+        math.ceil(
+            math.log(
+                num_crops_to_generate,
+                args.ideal_number_pairs_in_dir)),
+        args.max_subdir_levels)
+    num_pairs_in_dir = math.ceil(num_crops_to_generate ** (1 / num_levels))
 
     jobs = prepare_jobs(crops, num_levels, num_pairs_in_dir)
     del crops
@@ -45,12 +75,12 @@ def main(args):
     call = functools.partial(save_image_crops, args)
 
     print(f"Generating cropped images to {args.output_dir} ...")
-    with open(listing_path, 'w') as listing:
-        listing.write('# pair_path\n')
+    with open(listing_path, "w") as listing:
+        listing.write("# pair_path\n")
         for results in tqdm(mmap(call, jobs), total=len(jobs)):
             for path in results:
-                listing.write(f'{path}\n')
-    print('Finished writing listing to', listing_path)
+                listing.write(f"{path}\n")
+    print("Finished writing listing to", listing_path)
 
 
 def load_crop_file(path):
@@ -58,9 +88,9 @@ def load_crop_file(path):
     pairs = []
     num_crops_to_generate = 0
     for line in tqdm(data):
-        if line.startswith('#'):
+        if line.startswith("#"):
             continue
-        line = line.split(', ')
+        line = line.split(", ")
         if len(line) < 8:
             img1, img2, rotation = line
             pairs.append((img1, img2, int(rotation), []))
@@ -83,7 +113,7 @@ def prepare_jobs(pairs, num_levels, num_pairs_in_dir):
             idx_array.append(idx // powers[level])
             idx = idx % powers[level]
         idx_array.append(d)
-        return '/'.join(map(lambda x: hex(x)[2:], idx_array))
+        return "/".join(map(lambda x: hex(x)[2:], idx_array))
 
     idx = 0
     for pair_data in tqdm(pairs):
@@ -98,9 +128,9 @@ def prepare_jobs(pairs, num_levels, num_pairs_in_dir):
 
 def load_image(path):
     try:
-        return Image.open(path).convert('RGB')
+        return Image.open(path).convert("RGB")
     except Exception as e:
-        print('skipping', path, e)
+        print("skipping", path, e)
         raise OSError()
 
 
@@ -108,7 +138,10 @@ def save_image_crops(args, data):
     # load images
     img_pair, rot, crops, paths = data
     try:
-        img1, img2 = [load_image(os.path.join(args.root_dir, impath)) for impath in img_pair]
+        img1, img2 = [
+            load_image(
+                os.path.join(
+                    args.root_dir, impath)) for impath in img_pair]
     except OSError as e:
         return []
 
@@ -122,11 +155,12 @@ def save_image_crops(args, data):
         img = img.crop(rect)
 
         # resize to desired size
-        interp = Image.Resampling.LANCZOS if area(img.size) > 4*area(tgt_size) else Image.Resampling.BICUBIC
+        interp = Image.Resampling.LANCZOS if area(
+            img.size) > 4 * area(tgt_size) else Image.Resampling.BICUBIC
         img = img.resize(tgt_size, resample=interp)
 
         # rotate the image
-        rot90 = (round(rot/90) % 4) * 90
+        rot90 = (round(rot / 90) % 4) * 90
         if rot90 == 90:
             img = img.transpose(Image.Transpose.ROTATE_90)
         elif rot90 == 180:
@@ -140,8 +174,8 @@ def save_image_crops(args, data):
         crop1 = prepare_crop(img1, rect1)
         crop2 = prepare_crop(img2, rect2, rot)
 
-        fullpath1 = os.path.join(args.output_dir,  path+'_1.jpg')
-        fullpath2 = os.path.join(args.output_dir,  path+'_2.jpg')
+        fullpath1 = os.path.join(args.output_dir, path + "_1.jpg")
+        fullpath2 = os.path.join(args.output_dir, path + "_2.jpg")
         os.makedirs(os.path.dirname(fullpath1), exist_ok=True)
 
         assert not os.path.isfile(fullpath1), fullpath1
@@ -153,7 +187,6 @@ def save_image_crops(args, data):
     return results
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = arg_parser().parse_args()
     main(args)
-

@@ -2,6 +2,7 @@
 This file contains code that is adapted from
 https://github.com/thomasjpfan/pytorch_refinenet/blob/master/pytorch_refinenet/refinenet/refinenet_4cascade.py
 """
+
 import torch
 import torch.nn as nn
 
@@ -10,8 +11,7 @@ from midas.models.blocks import FeatureFusionBlock, Interpolate, _make_encoder
 
 
 class MidasNet(BaseModel):
-    """Network for monocular depth estimation.
-    """
+    """Network for monocular depth estimation."""
 
     def __init__(self, path=None, features=256, non_negative=True):
         """Init.

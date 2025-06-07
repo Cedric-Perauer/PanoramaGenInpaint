@@ -29,7 +29,7 @@ COMPOSITE = False
 TOP_BOTTOM_VIEWS = False
 IMAGE_SIZE = 1024
 
-if GEN == True:
+if GEN:
     pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-schnell", torch_dtype=torch.bfloat16)
     pipe.enable_model_cpu_offload()
     prompt = "a town square in a city with a person standing in the center"
@@ -106,15 +106,15 @@ for idx, view in enumerate(tqdm(side_views, desc="Processing side views")):
     save_mask.save(f"new_mask_{idx}.png")
     render_img = Image.fromarray(render_img).convert("RGB")
     show_image_cv2(pil_to_cv2(new_mask))
-    prompt = "a photorealistic house on a market square"
+    prompt = "a new photorealistic house on a market square in 1800s stylex, without people"
 
     print(f"Render image shape: {render_img.size}{mask.shape}")
     render_img.save(f"imgs/render_{idx}.png")
 
-    if idx == 0:
-        cond_scale = 0.4
-    else:
-        cond_scale = 0.9
+    # if idx == 0:
+    #    cond_scale = 0.4
+    # else:
+    cond_scale = 0.9
 
     if idx not in right_side_nums and idx not in left_side_nums:
         image = outpaint_controlnet(
@@ -164,7 +164,7 @@ for idx, view in enumerate(tqdm(side_views, desc="Processing side views")):
             new_mask = fix_inpaint_mask(new_mask, mode="step1", side="l")
 
     image = image.resize((1024, 1024), Image.LANCZOS)
-    image.save(f"imgs/render_{idx}.png")
+    image.save(f"imgs/render_in_{idx}.png")
     if COMPOSITE:
         # Composite the outpainted image with the rendered image using the mask
         mask_array = np.array(new_mask)
@@ -184,13 +184,13 @@ for idx, view in enumerate(tqdm(side_views, desc="Processing side views")):
         image = Image.fromarray(composite.astype(np.uint8))
 
         image = image.resize((1024, 1024), Image.LANCZOS)
-        image.save(f"imgs/render_{idx}.png")
+        image.save(f"imgs/render_in_{idx}.png")
 
     clear_gpu_memory()
     # if idx == 0 :
     if REFINER or idx == 0:
         run_with_conda_env(
-            "diffusers33", f"refiner.py imgs/render_{idx}.png --output_path imgs/refined_output_{idx}.png"
+            "diffusers33", f"refiner.py imgs/render_in_{idx}.png --output_path imgs/refined_output_{idx}.png"
         )
         image = Image.open(f"imgs/refined_output_{idx}.png")
     # else :
@@ -224,5 +224,3 @@ for idx, view in enumerate(tqdm(side_views, desc="Processing side views")):
 
     cur_pano = cv2.cvtColor(initial_pano_np, cv2.COLOR_BGR2RGB)
     cv2.imwrite(f"imgs/cur_pano_{idx}.png", cur_pano)
-    if idx == 2:
-        break

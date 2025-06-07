@@ -107,7 +107,7 @@ class Midas
 public:
     Midas()
         : nh_(), it_(nh_), device(torch::Device(torch::kCPU))
-    {     
+    {
         ros::param::param<std::string>("~input_topic", input_topic, "image_topic");
         ros::param::param<std::string>("~output_topic", output_topic, "midas_topic");
         ros::param::param<std::string>("~model_name", model_name, "model-small-traced.pt");
@@ -128,7 +128,7 @@ public:
         image_pub_ = it_.advertise(output_topic, 1);
 
         std::cout << "Try to load torchscript model \n";
-        
+
         try {
             // Deserialize the ScriptModule from a file using torch::jit::load().
             module = torch::jit::load(model_name);
@@ -185,7 +185,7 @@ public:
         auto tensor_cpu = ToTensor(cv_ptr->image);           // OpenCV-image -> Libtorch-tensor
 
         try {
-            tensor = tensor_cpu.to(device); // move to device (CPU or GPU)      
+            tensor = tensor_cpu.to(device); // move to device (CPU or GPU)
 
             tensor = tensor.toType(c10::kFloat);
             tensor = tensor.permute({ 2, 0, 1 });   // HWC -> CHW
@@ -193,7 +193,7 @@ public:
             tensor = at::upsample_bilinear2d(tensor, { net_height, net_width }, true);  // resize
             tensor = tensor.squeeze(0);
             tensor = tensor.permute({ 1, 2, 0 });   // CHW -> HWC
-                                                                
+
             tensor = tensor.div(255).sub(mean).div(std);    // normalization
             tensor = tensor.permute({ 2, 0, 1 });   // HWC -> CHW
             tensor.unsqueeze_(0);                   // CHW -> NCHW
@@ -203,7 +203,7 @@ public:
             std::cerr << " pre-processing exception: " << e.msg() << std::endl;
             return;
         }
-        
+
         auto input_to_net = ToInput(tensor);                    // input to the network
 
         // inference
@@ -216,7 +216,7 @@ public:
             std::cerr << " module.forward() exception: " << e.msg() << std::endl;
             return;
         }
-        
+
         output = output.detach().to(torch::kF32);
 
         // move to CPU temporary
@@ -233,7 +233,7 @@ public:
             if (max_val < val) max_val = val;
         }
         float range_val = max_val - min_val;
-               
+
         output = output.sub(min_val).div(range_val).mul(255.0F).clamp(0, 255).to(torch::kF32);   // .to(torch::kU8);
 
         // resize to the original size if required
@@ -249,7 +249,7 @@ public:
             }
         }
         output = output.permute({ 1, 2, 0 }).to(torch::kCPU);
-        
+
         int cv_type = CV_32FC1; // CV_8UC1;
         auto cv_img = ToCvImage(output, cv_type);
 
@@ -262,7 +262,7 @@ public:
             header.stamp = ros::Time::now();// time
             //cv_bridge::CvImage img_bridge = cv_bridge::CvImage(header, sensor_msgs::image_encodings::MONO8, cv_img);
             cv_bridge::CvImage img_bridge = cv_bridge::CvImage(header, sensor_msgs::image_encodings::TYPE_32FC1, cv_img);
-                        
+
             img_bridge.toImageMsg(img_msg); // cv_bridge -> sensor_msgs::Image
         }
         catch (cv_bridge::Exception& e)

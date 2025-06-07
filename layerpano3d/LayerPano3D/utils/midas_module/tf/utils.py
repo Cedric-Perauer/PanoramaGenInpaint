@@ -21,12 +21,12 @@ def write_pfm(path, image, scale=1):
 
         if len(image.shape) == 3 and image.shape[2] == 3:  # color image
             color = True
-        elif (
-            len(image.shape) == 2 or len(image.shape) == 3 and image.shape[2] == 1
-        ):  # greyscale
+        # greyscale
+        elif len(image.shape) == 2 or len(image.shape) == 3 and image.shape[2] == 1:
             color = False
         else:
-            raise Exception("Image must have H x W x 3, H x W x 1 or H x W dimensions.")
+            raise Exception(
+                "Image must have H x W x 3, H x W x 1 or H x W dimensions.")
 
         file.write("PF\n" if color else "Pf\n".encode())
         file.write("%d %d\n".encode() % (image.shape[1], image.shape[0]))
@@ -39,6 +39,7 @@ def write_pfm(path, image, scale=1):
         file.write("%f\n".encode() % scale)
 
         image.tofile(file)
+
 
 def read_image(path):
     """Read image and output RGB image (0-1).
@@ -56,6 +57,7 @@ def read_image(path):
 
     return img
 
+
 def write_depth(path, depth, bits=1):
     """Write depth map to pfm and png file.
     Args:
@@ -67,7 +69,7 @@ def write_depth(path, depth, bits=1):
     depth_min = depth.min()
     depth_max = depth.max()
 
-    max_val = (2**(8*bits))-1
+    max_val = (2 ** (8 * bits)) - 1
 
     if depth_max - depth_min > np.finfo("float").eps:
         out = max_val * (depth - depth_min) / (depth_max - depth_min)

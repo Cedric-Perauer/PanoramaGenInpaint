@@ -9,29 +9,29 @@
 // Note: all cv::Mat data depth is double (64F).
 /**
  * Initial the depth map alignment module run time environment.
- * 
+ *
 * @param method The depth map stitcher method name.
- * 
+ *
  * @return int is < 0 if there is error.
  */
 int init(const std::string &method);
 
 /**
  * Clear the depth map alignment run time environment.
- * 
- * @return int 
+ *
+ * @return int
  */
 int shutdown();
 
 /**
  * Report the error between subimages.
- * 
- * @return int 
+ *
+ * @return int
  */
 int report_aligned_depthmap_error();
 
 /**
- * Create mock data for debug. 
+ * Create mock data for debug.
  * @param depthmap The synthetic depth map
  * @param align_coeff The synthetic depth map deformation alignment coefficients.
  * @param pixels_corresponding_list The synthetic depth map pixel corresponding relationship.

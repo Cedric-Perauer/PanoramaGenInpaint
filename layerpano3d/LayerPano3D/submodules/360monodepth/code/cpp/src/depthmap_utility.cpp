@@ -103,7 +103,7 @@ void DepthmapUtil::bilinear_weight(double* weight_list,
 
 	// compute the bilinear weights
 	if (grid_row_low == grid_row_up && grid_col_low != grid_col_up)
-	{ 
+	{
 		// in the same row
 		double weight_denominator = grid_col_up_pixel - grid_col_low_pixel;
 		weight_list[grid_row_low * grid_width + grid_col_low] = (grid_col_up_pixel - x) / weight_denominator; //the Top-Left && Bottom-Left

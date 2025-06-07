@@ -1,5 +1,6 @@
 """Utils for monoDepth.
 """
+
 import sys
 import re
 import numpy as np
@@ -32,7 +33,9 @@ def read_pfm(path):
         else:
             raise Exception("Not a PFM file: " + path)
 
-        dim_match = re.match(r"^(\d+)\s(\d+)\s$", file.readline().decode("ascii"))
+        dim_match = re.match(
+            r"^(\d+)\s(\d+)\s$",
+            file.readline().decode("ascii"))
         if dim_match:
             width, height = list(map(int, dim_match.groups()))
         else:
@@ -75,12 +78,12 @@ def write_pfm(path, image, scale=1):
 
         if len(image.shape) == 3 and image.shape[2] == 3:  # color image
             color = True
-        elif (
-            len(image.shape) == 2 or len(image.shape) == 3 and image.shape[2] == 1
-        ):  # greyscale
+        # greyscale
+        elif len(image.shape) == 2 or len(image.shape) == 3 and image.shape[2] == 1:
             color = False
         else:
-            raise Exception("Image must have H x W x 3, H x W x 1 or H x W dimensions.")
+            raise Exception(
+                "Image must have H x W x 3, H x W x 1 or H x W dimensions.")
 
         file.write("PF\n" if color else "Pf\n".encode())
         file.write("%d %d\n".encode() % (image.shape[1], image.shape[0]))
@@ -134,11 +137,11 @@ def resize_image(img):
     height = (np.ceil(height_orig / scale / 32) * 32).astype(int)
     width = (np.ceil(width_orig / scale / 32) * 32).astype(int)
 
-    img_resized = cv2.resize(img, (width, height), interpolation=cv2.INTER_AREA)
+    img_resized = cv2.resize(
+        img, (width, height), interpolation=cv2.INTER_AREA)
 
-    img_resized = (
-        torch.from_numpy(np.transpose(img_resized, (2, 0, 1))).contiguous().float()
-    )
+    img_resized = torch.from_numpy(np.transpose(
+        img_resized, (2, 0, 1))).contiguous().float()
     img_resized = img_resized.unsqueeze(0)
 
     return img_resized
@@ -158,10 +161,10 @@ def resize_depth(depth, width, height):
     depth = torch.squeeze(depth[0, :, :, :]).to("cpu")
 
     depth_resized = cv2.resize(
-        depth.numpy(), (width, height), interpolation=cv2.INTER_CUBIC
-    )
+        depth.numpy(), (width, height), interpolation=cv2.INTER_CUBIC)
 
     return depth_resized
+
 
 def write_depth(path, depth, grayscale, bits=1):
     """Write depth map to png file.
@@ -175,13 +178,13 @@ def write_depth(path, depth, grayscale, bits=1):
         bits = 1
 
     if not np.isfinite(depth).all():
-        depth=np.nan_to_num(depth, nan=0.0, posinf=0.0, neginf=0.0)
+        depth = np.nan_to_num(depth, nan=0.0, posinf=0.0, neginf=0.0)
         print("WARNING: Non-finite depth values present")
 
     depth_min = depth.min()
     depth_max = depth.max()
 
-    max_val = (2**(8*bits))-1
+    max_val = (2 ** (8 * bits)) - 1
 
     if depth_max - depth_min > np.finfo("float").eps:
         out = max_val * (depth - depth_min) / (depth_max - depth_min)

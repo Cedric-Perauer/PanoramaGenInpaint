@@ -26,6 +26,7 @@ See options/base_options.py and options/test_options.py for more test options.
 See training and test tips at: https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix/blob/master/docs/tips.md
 See frequently asked questions at: https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix/blob/master/docs/qa.md
 """
+
 import os
 from options.test_options import TestOptions
 from data import create_dataset
@@ -37,59 +38,74 @@ import numpy as np
 import torch
 from util.guidedfilter import GuidedFilter
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     opt = TestOptions().parse()  # get test options
     # hard-code some parameters for test
-    opt.num_threads = 0   # test code only supports num_threads = 1
-    opt.batch_size = 1    # test code only supports batch_size = 1
-    opt.serial_batches = True  # disable data shuffling; comment this line if results on randomly chosen images are needed.
-    opt.no_flip = True    # no flip; comment this line if results on flipped images are needed.
-    opt.display_id = -1   # no visdom display; the test code saves the results to a HTML file.
-    dataset = create_dataset(opt)  # create a dataset given opt.dataset_mode and other options
-    model = create_model(opt)      # create a model given opt.model and other options
-    model.setup(opt)               # regular setup: load and print networks; create schedulers
+    opt.num_threads = 0  # test code only supports num_threads = 1
+    opt.batch_size = 1  # test code only supports batch_size = 1
+    opt.serial_batches = (
+        # disable data shuffling; comment this line if results on randomly
+        # chosen images are needed.
+        True
+    )
+    # no flip; comment this line if results on flipped images are needed.
+    opt.no_flip = True
+    # no visdom display; the test code saves the results to a HTML file.
+    opt.display_id = -1
+    # create a dataset given opt.dataset_mode and other options
+    dataset = create_dataset(opt)
+    # create a model given opt.model and other options
+    model = create_model(opt)
+    # regular setup: load and print networks; create schedulers
+    model.setup(opt)
     # create a website
-    web_dir = os.path.join(opt.results_dir, opt.name, '{}_{}'.format(opt.phase, opt.epoch))  # define the website directory
+    web_dir = os.path.join(
+        opt.results_dir, opt.name, "{}_{}".format(opt.phase, opt.epoch)
+    )  # define the website directory
     if opt.load_iter > 0:  # load_iter is 0 by default
-        web_dir = '{:s}_iter{:d}'.format(web_dir, opt.load_iter)
-    print('creating web directory', web_dir)
+        web_dir = "{:s}_iter{:d}".format(web_dir, opt.load_iter)
+    print("creating web directory", web_dir)
     # webpage = html.HTML(web_dir, 'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.epoch))
     # test with eval mode. This only affects layers like batchnorm and dropout.
     # For [pix2pix]: we use batchnorm and dropout in the original pix2pix. You can experiment it with and without eval() mode.
-    # For [CycleGAN]: It should not affect CycleGAN as CycleGAN uses instancenorm without dropout.
+    # For [CycleGAN]: It should not affect CycleGAN as CycleGAN uses
+    # instancenorm without dropout.
     normalize_coef = np.float32(2 ** (16))
 
     model.eval()
     for i, data in enumerate(dataset):
         model.set_input_train(data)  # unpack data from data loader
-        model.test()           # run inference
+        model.test()  # run inference
         visuals = model.get_current_visuals()  # get image results
-        img_path = model.get_image_paths()     # get image paths
+        img_path = model.get_image_paths()  # get image paths
         filename = os.path.basename(img_path[0])
-        print('processing (%04d)-th image... %s' % (i, filename))
+        print("processing (%04d)-th image... %s" % (i, filename))
 
-        inner = visuals['inner']
+        inner = visuals["inner"]
         inner = inner.cpu()
         inner = torch.squeeze(inner)
         inner = inner.numpy()
         inner = (inner + 1) / 2
 
-        out = visuals['fake_B']
+        out = visuals["fake_B"]
         out = out.cpu()
         out = torch.squeeze(out)
         out = out.numpy()
-        out = (out+1)/2
+        out = (out + 1) / 2
 
         # out = GuidedFilter(inner, out, 32, 0).smooth.astype('float32')
-        out = GuidedFilter(inner, out, 64, 0).smooth.astype('float32')
+        out = GuidedFilter(inner, out, 64, 0).smooth.astype("float32")
 
         out = out * (normalize_coef - 1)
-        out = out.astype('uint16')
+        out = out.astype("uint16")
         out = Image.fromarray(out)
-        out = out.convert('I;16')
+        out = out.convert("I;16")
         # out = out.resize(input_size)
 
-        save_dirname = os.path.join('results','mahdi_pix2pix_unet_l1_basic','test_latest')
+        save_dirname = os.path.join(
+            "results",
+            "mahdi_pix2pix_unet_l1_basic",
+            "test_latest")
         if not os.path.exists(save_dirname):
             os.makedirs(save_dirname)
         out.save(os.path.join(save_dirname, filename))

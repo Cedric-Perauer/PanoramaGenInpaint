@@ -14,12 +14,14 @@ repos:
     -   id: black
         language_version: python3
         args: [--line-length=120]
-        exclude: ^(deprecated/|dust3r/|layerpano3d/|FLUX-Controlnet-Inpainting/|imgs/)
+        files: \.py$
+        exclude: ^(deprecated/|dust3r/|layerpano3d/|FLUX-Controlnet-Inpainting/|imgs/|__pycache__/)
 
 -   repo: https://github.com/hhatto/autopep8
     rev: v2.0.4
     hooks:
     -   id: autopep8
         args: [--max-line-length=120, --aggressive, --verbose, --diff]
-        exclude: ^(deprecated/|dust3r/|layerpano3d/|FLUX-Controlnet-Inpainting/|imgs/)
+        files: \.py$
+        exclude: ^(deprecated/|dust3r/|layerpano3d/|FLUX-Controlnet-Inpainting/|imgs/|__pycache__/)
         verbose: true

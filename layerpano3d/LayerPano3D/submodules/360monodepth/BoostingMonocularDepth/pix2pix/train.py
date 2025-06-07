@@ -18,50 +18,70 @@ See options/base_options.py and options/train_options.py for more training optio
 See training and test tips at: https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix/blob/master/docs/tips.md
 See frequently asked questions at: https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix/blob/master/docs/qa.md
 """
+
 import time
 from options.train_options import TrainOptions
 from data import create_dataset
 from models import create_model
 from util.visualizer import Visualizer
 
-if __name__ == '__main__':
-    opt = TrainOptions().parse()   # get training options
+if __name__ == "__main__":
+    opt = TrainOptions().parse()  # get training options
     # opt.serial_batches = True
-    dataset = create_dataset(opt)  # create a dataset given opt.dataset_mode and other options
-    dataset_size = len(dataset)    # get the number of images in the dataset.
-    print('The number of training images = %d' % dataset_size)
+    # create a dataset given opt.dataset_mode and other options
+    dataset = create_dataset(opt)
+    dataset_size = len(dataset)  # get the number of images in the dataset.
+    print("The number of training images = %d" % dataset_size)
 
-    model = create_model(opt)      # create a model given opt.model and other options
-    model.setup(opt)               # regular setup: load and print networks; create schedulers
-    visualizer = Visualizer(opt)   # create a visualizer that display/save images and plots
+    # create a model given opt.model and other options
+    model = create_model(opt)
+    # regular setup: load and print networks; create schedulers
+    model.setup(opt)
+    # create a visualizer that display/save images and plots
+    visualizer = Visualizer(opt)
 
-    for epoch in range(opt.epoch_count, opt.n_epochs + opt.n_epochs_decay + 1):    # outer loop for different epochs; we save the model by <epoch_count>, <epoch_count>+<save_latest_freq>
+    for epoch in range(
+        opt.epoch_count, opt.n_epochs + opt.n_epochs_decay + 1
+    ):  # outer loop for different epochs; we save the model by <epoch_count>, <epoch_count>+<save_latest_freq>
         epoch_start_time = time.time()  # timer for entire epoch
-        iter_data_time = time.time()    # timer for data loading per iteration
-        epoch_iter = 0                  # the number of training iterations in current epoch, reset to 0 every epoch
-        visualizer.reset()              # reset the visualizer: make sure it saves the results to HTML at least once every epoch
-        model.update_learning_rate()    # update learning rates in the beginning of every epoch.
+        iter_data_time = time.time()  # timer for data loading per iteration
+        epoch_iter = 0  # the number of training iterations in current epoch, reset to 0 every epoch
+        # reset the visualizer: make sure it saves the results to HTML at least
+        # once every epoch
+        visualizer.reset()
+        # update learning rates in the beginning of every epoch.
+        model.update_learning_rate()
         for i, data in enumerate(dataset):  # inner loop within one epoch
             iter_start_time = time.time()  # timer for computation per iteration
 
             epoch_iter += opt.batch_size
-            model.set_input_train(data)         # unpack data from dataset and apply preprocessing
-            model.optimize_parameters()   # calculate loss functions, get gradients, update network weights
+            # unpack data from dataset and apply preprocessing
+            model.set_input_train(data)
+            # calculate loss functions, get gradients, update network weights
+            model.optimize_parameters()
 
             if epoch_iter == dataset_size:
                 model.compute_visuals()
-                visualizer.display_current_results(model.get_current_visuals(), epoch, True)
+                visualizer.display_current_results(
+                    model.get_current_visuals(), epoch, True)
 
-            if epoch_iter % 500 == 0 or epoch_iter == dataset_size:    # print training losses and save logging information to the disk
+            # print training losses and save logging information to the disk
+            if (epoch_iter % 500 == 0 or epoch_iter == dataset_size):
                 losses = model.get_current_losses()
                 t_data = iter_start_time - iter_data_time
                 t_comp = (time.time() - iter_start_time) / opt.batch_size
-                visualizer.print_current_losses(epoch, epoch_iter, losses, t_comp, t_data)
+                visualizer.print_current_losses(
+                    epoch, epoch_iter, losses, t_comp, t_data)
 
-
-        if epoch % opt.save_epoch_freq == 0:              # cache our model every <save_epoch_freq> epochs
-            print('saving the model at the end of epoch %d' % epoch)
-            model.save_networks('latest')
+        if epoch % opt.save_epoch_freq == 0:  # cache our model every <save_epoch_freq> epochs
+            print("saving the model at the end of epoch %d" % epoch)
+            model.save_networks("latest")
             model.save_networks(epoch)
 
-        print('End of epoch %d / %d \t Time Taken: %d sec' % (epoch, opt.n_epochs + opt.n_epochs_decay, time.time() - epoch_start_time))
+        print(
+            "End of epoch %d / %d \t Time Taken: %d sec" %
+            (epoch,
+             opt.n_epochs +
+             opt.n_epochs_decay,
+             time.time() -
+             epoch_start_time))

@@ -54,11 +54,11 @@ class ViewController: UIViewController {
 
   //@IBOutlet weak var overlayView: OverlayView!
   @IBOutlet weak var overlayView: UIImageView!
-        
+
   private var imageView : UIImageView = UIImageView(frame:CGRect(x:0, y:0, width:400, height:400))
-    
+
   private var imageViewInitialized: Bool = false
-    
+
   @IBOutlet weak var resumeButton: UIButton!
   @IBOutlet weak var cameraUnavailableLabel: UILabel!
 
@@ -79,7 +79,7 @@ class ViewController: UIViewController {
 
   // Minimum score to render the result.
   private let minimumScore: Float = 0.5
-    
+
   private var avg_latency: Double = 0.0
 
   // Relative location of `overlayView` to `previewView`.
@@ -294,43 +294,43 @@ extension ViewController: CameraFeedManagerDelegate {
     } else {
         avg_latency = times.inference*0.1 + avg_latency*0.9
     }
-    
+
     // Udpate `inferencedData` to render data in `tableView`.
     inferencedData = InferencedData(score: Float(avg_latency), times: times)
-    
+
     //let height = 256
     //let width = 256
-    
+
     let outputs = result
     let outputs_size = width * height;
-      
+
     var multiplier : Float = 1.0;
-    
+
     let max_val : Float = outputs.max() ?? 0
     let min_val : Float = outputs.min() ?? 0
-    
+
     if((max_val - min_val) > 0) {
         multiplier = 255 / (max_val - min_val);
     }
-    
+
     // Draw result.
     DispatchQueue.main.async {
       self.tableView.reloadData()
-                        
+
         var pixels: [PixelData] = .init(repeating: .init(a: 255, r: 0, g: 0, b: 0), count: width * height)
-             
+
         for i in pixels.indices {
         //if(i < 1000)
         //{
             let val = UInt8((outputs[i] - min_val) * multiplier)
-            
+
             pixels[i].r = val
             pixels[i].g = val
             pixels[i].b = val
         //}
         }
-        
-        
+
+
         /*
            pixels[i].a = 255
            pixels[i].r = .random(in: 0...255)
@@ -338,22 +338,22 @@ extension ViewController: CameraFeedManagerDelegate {
            pixels[i].b = .random(in: 0...255)
         }
         */
-        
+
         DispatchQueue.main.async {
             let image = UIImage(pixels: pixels, width: width, height: height)
 
             self.imageView.image = image
-            
+
             if (self.imageViewInitialized == false) {
                 self.imageViewInitialized = true
                 self.overlayView.addSubview(self.imageView)
                 self.overlayView.setNeedsDisplay()
             }
         }
-        
+
         /*
         let image = UIImage(pixels: pixels, width: width, height: height)
-        
+
         var imageView : UIImageView
         imageView  = UIImageView(frame:CGRect(x:0, y:0, width:400, height:400));
         imageView.image = image
@@ -374,7 +374,7 @@ extension ViewController: CameraFeedManagerDelegate {
     self.overlayView.setNeedsDisplay()
   }
     */
-    
+
 }
 
 

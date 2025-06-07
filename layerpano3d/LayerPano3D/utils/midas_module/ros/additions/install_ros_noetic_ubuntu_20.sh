@@ -21,7 +21,7 @@ printf "\nsource /opt/ros/noetic/setup.bash\n" >> ~/.bashrc
 
 # 1.5 Initialize rosdep
 sudo rosdep init
-rosdep update 
+rosdep update
 
 
 # 1.7 Getting rosinstall (python)
