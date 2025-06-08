@@ -4,6 +4,8 @@ from transformers import T5EncoderModel
 from utils import *
 import numpy as np
 from image_utils import visualize_all_inpainting_masks
+from PIL import Image
+from matplotlib import pyplot as plt
 
 IMAGE_SIZE = 1024
 
