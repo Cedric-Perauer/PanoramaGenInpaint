@@ -10,12 +10,7 @@ from matplotlib import pyplot as plt
 IMAGE_SIZE = 1024
 
 
-def composite_with_mask(
-        destination,
-        source,
-        mask=None,
-        resize_source=True,
-        resize_mode="bilinear"):
+def composite_with_mask(destination, source, mask=None, resize_source=True, resize_mode="bilinear"):
     """
     Composite source onto destination using mask:
     - Where mask=0: keep destination
@@ -31,12 +26,10 @@ def composite_with_mask(
     source_slice = source.to(device).float()
 
     if resize_source:
-        source_slice = torch.nn.functional.interpolate(
-            source_slice, size=(dest_height, dest_width), mode=resize_mode)
+        source_slice = torch.nn.functional.interpolate(source_slice, size=(dest_height, dest_width), mode=resize_mode)
 
     if mask is None:
-        mask_slice = torch.ones(
-            (batch_size, 1, dest_height, dest_width), device=device)
+        mask_slice = torch.ones((batch_size, 1, dest_height, dest_width), device=device)
     else:
         mask_slice = mask.to(device).float()
 
@@ -44,8 +37,7 @@ def composite_with_mask(
             mask_slice = mask_slice.unsqueeze(1)
 
         if mask_slice.shape[-2:] != (dest_height, dest_width):
-            mask_slice = torch.nn.functional.interpolate(
-                mask_slice, size=(dest_height, dest_width), mode=resize_mode)
+            mask_slice = torch.nn.functional.interpolate(mask_slice, size=(dest_height, dest_width), mode=resize_mode)
 
     if mask_slice.max() > 1.0:
         mask_slice = mask_slice / 255.0
@@ -53,8 +45,7 @@ def composite_with_mask(
     if mask_slice.shape[1] == 1 and source_slice.shape[1] > 1:
         mask_slice = mask_slice.expand(-1, channels, -1, -2)
 
-    print(
-        f"Mask min: {mask_slice.min().item()}, max: {mask_slice.max().item()}")
+    print(f"Mask min: {mask_slice.min().item()}, max: {mask_slice.max().item()}")
 
     result = result * (1 - mask_slice) + source_slice * mask_slice
 
@@ -81,12 +72,8 @@ def vis_inpaint_strategy(vis=False):
         # --- Plot the results ---
         num_views = len(all_views_data)
 
-        fig, axes = plt.subplots(
-            num_views, 3, figsize=(
-                12, 3 * num_views))  # Width, Height
-        fig.suptitle(
-            "Individual Inpainting View Masks and Projections",
-            fontsize=16)
+        fig, axes = plt.subplots(num_views, 3, figsize=(12, 3 * num_views))  # Width, Height
+        fig.suptitle("Individual Inpainting View Masks and Projections", fontsize=16)
 
         if num_views == 1:
             axes = np.array([axes])
@@ -98,8 +85,8 @@ def vis_inpaint_strategy(vis=False):
 
             ax_render.imshow(data["render"])
             ax_render.set_title(
-                f"{data['label']}\nY={data['yaw']}, P={data['pitch']}, FoV={data['fov']}\nRendered View",
-                fontsize=8)
+                f"{data['label']}\nY={data['yaw']}, P={data['pitch']}, FoV={data['fov']}\nRendered View", fontsize=8
+            )
             ax_render.axis("off")
 
             ax_mask.imshow(data["mask"], cmap="gray")
@@ -122,27 +109,14 @@ def vis_inpaint_strategy(vis=False):
         print(f"An error occurred: {e}")
 
 
-def fix_inpaint_mask(
-        mask,
-        contour_color=(
-            0,
-            255,
-            0),
-    fill_color=(
-            0,
-            0,
-            0),
-        extend_amount=100,
-        mode=None,
-        side="r"):
+def fix_inpaint_mask(mask, contour_color=(0, 255, 0), fill_color=(0, 0, 0), extend_amount=100, mode=None, side="r"):
     mask_copy = mask.copy()
     if mask_copy.dtype != np.uint8:
 
         mask_copy = (mask_copy * 255).astype(np.uint8)
 
     inverted = cv2.bitwise_not(mask_copy)
-    contours, _ = cv2.findContours(
-        inverted, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(inverted, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     cv2.drawContours(mask_copy, contours, -1, 0, -1)
     if extend_amount > 0:
@@ -151,8 +125,7 @@ def fix_inpaint_mask(
 
     blur_amount = 20
     if blur_amount > 0:
-        mask_copy = cv2.GaussianBlur(
-            mask_copy, (blur_amount * 2 + 1, blur_amount * 2 + 1), 0)
+        mask_copy = cv2.GaussianBlur(mask_copy, (blur_amount * 2 + 1, blur_amount * 2 + 1), 0)
 
     if mode is not None:
         if side == "r":
@@ -179,24 +152,19 @@ def fix_inpaint_mask(
 def load_pipeline(four_bit=False):
     from diffusers import FluxTransformer2DModel, FluxFillPipeline
 
-    orig_pipeline = DiffusionPipeline.from_pretrained(
-        "black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16)
+    orig_pipeline = DiffusionPipeline.from_pretrained("black-forest-labs/FLUX.1-dev", torch_dtype=torch.bfloat16)
 
     transformer = FluxTransformer2DModel.from_pretrained(
-        "sayakpaul/FLUX.1-Fill-dev-nf4",
-        subfolder="transformer",
-        torch_dtype=torch.bfloat16)
+        "sayakpaul/FLUX.1-Fill-dev-nf4", subfolder="transformer", torch_dtype=torch.bfloat16
+    )
 
     text_encoder_2 = T5EncoderModel.from_pretrained(
-        "sayakpaul/FLUX.1-Fill-dev-nf4",
-        subfolder="text_encoder_2",
-        torch_dtype=torch.bfloat16)
+        "sayakpaul/FLUX.1-Fill-dev-nf4", subfolder="text_encoder_2", torch_dtype=torch.bfloat16
+    )
 
     pipeline = FluxFillPipeline.from_pipe(
-        orig_pipeline,
-        transformer=transformer,
-        text_encoder_2=text_encoder_2,
-        torch_dtype=torch.bfloat16)
+        orig_pipeline, transformer=transformer, text_encoder_2=text_encoder_2, torch_dtype=torch.bfloat16
+    )
 
     pipeline.enable_model_cpu_offload()
     return pipeline
@@ -213,34 +181,24 @@ def load_contolnet_pipeline():
     from torchao.quantization import quantize_, int8_weight_only
 
     controlnet = FluxControlNetModel.from_pretrained(
-        "alimama-creative/FLUX.1-dev-Controlnet-Inpainting-Beta",
-        torch_dtype=torch.bfloat16)
+        "alimama-creative/FLUX.1-dev-Controlnet-Inpainting-Beta", torch_dtype=torch.bfloat16
+    )
     transformer = FluxTransformer2DModel.from_pretrained(
-        "black-forest-labs/FLUX.1-dev",
-        subfolder="transformer",
-        torch_dtype=torch.bfloat16)
+        "black-forest-labs/FLUX.1-dev", subfolder="transformer", torch_dtype=torch.bfloat16
+    )
 
     quantize_(transformer, int8_weight_only())
     quantize_(controlnet, int8_weight_only())
     pipe = FluxControlNetInpaintingPipeline.from_pretrained(
-        "black-forest-labs/FLUX.1-dev",
-        controlnet=controlnet,
-        transformer=transformer,
-        torch_dtype=torch.bfloat16)
+        "black-forest-labs/FLUX.1-dev", controlnet=controlnet, transformer=transformer, torch_dtype=torch.bfloat16
+    )
     pipe.enable_model_cpu_offload()
     pipe.transformer.to(torch.bfloat16)
     pipe.controlnet.to(torch.bfloat16)
     return pipe
 
 
-def generate_outpaint(
-        pipe,
-        image,
-        mask,
-        vis=False,
-        use_flux=False,
-        num_steps=50,
-        prompt="a city town square"):
+def generate_outpaint(pipe, image, mask, vis=False, use_flux=False, num_steps=50, prompt="a city town square"):
     if use_flux:
         image = pipe(
             prompt=prompt,
@@ -269,14 +227,8 @@ def generate_outpaint(
 
 
 def outpaint_controlnet(
-        pipe,
-        image,
-        mask,
-        vis=False,
-        num_steps=50,
-        prompt="a city town square",
-        cond_scale=0.9,
-        guidance_scale=3.5):
+    pipe, image, mask, vis=False, num_steps=50, prompt="a city town square", cond_scale=0.9, guidance_scale=3.5
+):
     generator = torch.Generator(device="cpu").manual_seed(42)
     # Inpaint
     size = (768, 768)
@@ -300,30 +252,17 @@ def outpaint_controlnet(
     return result
 
 
-def fix_mask(
-        image,
-        source_image,
-        fill_shape,
-        offset,
-        fill_size,
-        left,
-        pipe,
-        vis=False):
+def fix_mask(image, source_image, fill_shape, offset, fill_size, left, pipe, vis=False):
     clear_gpu_memory()
 
     mask = np.zeros((IMAGE_SIZE, IMAGE_SIZE + fill_shape), dtype=np.uint8)
     mask_width = 10
     if left:
-        mask[:, IMAGE_SIZE +
-             offset -
-             mask_width: IMAGE_SIZE +
-             offset +
-             mask_width] = 1
+        mask[:, IMAGE_SIZE + offset - mask_width : IMAGE_SIZE + offset + mask_width] = 1
     else:
-        mask[:, fill_size - mask_width: mask_width + fill_size] = 1
+        mask[:, fill_size - mask_width : mask_width + fill_size] = 1
     blur_amount = 50
-    blurred_mask = cv2.GaussianBlur(
-        mask * 255, (blur_amount * 2 + 1, blur_amount * 2 + 1), 0) * 255
+    blurred_mask = cv2.GaussianBlur(mask * 255, (blur_amount * 2 + 1, blur_amount * 2 + 1), 0) * 255
     blurred_mask = blurred_mask.astype(np.float32)
     image_gen = pipe(
         prompt="",
