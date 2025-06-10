@@ -26,7 +26,13 @@ default_models = {
 }
 
 
-def load_model(device, model_path, model_type="dpt_large_384", optimize=True, height=None, square=False):
+def load_model(
+        device,
+        model_path,
+        model_type="dpt_large_384",
+        optimize=True,
+        height=None,
+        square=False):
     """Load the specified network.
 
     Args:
@@ -54,7 +60,10 @@ def load_model(device, model_path, model_type="dpt_large_384", optimize=True, he
         )
         net_w, net_h = 512, 512
         resize_mode = "minimal"
-        normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        normalization = NormalizeImage(
+            mean=[
+                0.5, 0.5, 0.5], std=[
+                0.5, 0.5, 0.5])
 
     elif model_type == "dpt_beit_large_384":
         model = DPTDepthModel(
@@ -64,7 +73,10 @@ def load_model(device, model_path, model_type="dpt_large_384", optimize=True, he
         )
         net_w, net_h = 384, 384
         resize_mode = "minimal"
-        normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        normalization = NormalizeImage(
+            mean=[
+                0.5, 0.5, 0.5], std=[
+                0.5, 0.5, 0.5])
 
     elif model_type == "dpt_beit_base_384":
         model = DPTDepthModel(
@@ -74,7 +86,10 @@ def load_model(device, model_path, model_type="dpt_large_384", optimize=True, he
         )
         net_w, net_h = 384, 384
         resize_mode = "minimal"
-        normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        normalization = NormalizeImage(
+            mean=[
+                0.5, 0.5, 0.5], std=[
+                0.5, 0.5, 0.5])
 
     elif model_type == "dpt_swin2_large_384":
         model = DPTDepthModel(
@@ -85,7 +100,10 @@ def load_model(device, model_path, model_type="dpt_large_384", optimize=True, he
         net_w, net_h = 384, 384
         keep_aspect_ratio = False
         resize_mode = "minimal"
-        normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        normalization = NormalizeImage(
+            mean=[
+                0.5, 0.5, 0.5], std=[
+                0.5, 0.5, 0.5])
 
     elif model_type == "dpt_swin2_base_384":
         model = DPTDepthModel(
@@ -96,7 +114,10 @@ def load_model(device, model_path, model_type="dpt_large_384", optimize=True, he
         net_w, net_h = 384, 384
         keep_aspect_ratio = False
         resize_mode = "minimal"
-        normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        normalization = NormalizeImage(
+            mean=[
+                0.5, 0.5, 0.5], std=[
+                0.5, 0.5, 0.5])
 
     elif model_type == "dpt_swin2_tiny_256":
         model = DPTDepthModel(
@@ -107,7 +128,10 @@ def load_model(device, model_path, model_type="dpt_large_384", optimize=True, he
         net_w, net_h = 256, 256
         keep_aspect_ratio = False
         resize_mode = "minimal"
-        normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        normalization = NormalizeImage(
+            mean=[
+                0.5, 0.5, 0.5], std=[
+                0.5, 0.5, 0.5])
 
     elif model_type == "dpt_swin_large_384":
         model = DPTDepthModel(
@@ -118,7 +142,10 @@ def load_model(device, model_path, model_type="dpt_large_384", optimize=True, he
         net_w, net_h = 384, 384
         keep_aspect_ratio = False
         resize_mode = "minimal"
-        normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        normalization = NormalizeImage(
+            mean=[
+                0.5, 0.5, 0.5], std=[
+                0.5, 0.5, 0.5])
 
     elif model_type == "dpt_next_vit_large_384":
         model = DPTDepthModel(
@@ -128,7 +155,10 @@ def load_model(device, model_path, model_type="dpt_large_384", optimize=True, he
         )
         net_w, net_h = 384, 384
         resize_mode = "minimal"
-        normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        normalization = NormalizeImage(
+            mean=[
+                0.5, 0.5, 0.5], std=[
+                0.5, 0.5, 0.5])
 
     # We change the notation from dpt_levit_224 (MiDaS notation) to levit_384 (timm notation) here, where the 224 refers
     # to the resolution 224x224 used by LeViT and 384 is the first entry of the embed_dim, see _cfg and model_cfgs of
@@ -145,7 +175,10 @@ def load_model(device, model_path, model_type="dpt_large_384", optimize=True, he
         net_w, net_h = 224, 224
         keep_aspect_ratio = False
         resize_mode = "minimal"
-        normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        normalization = NormalizeImage(
+            mean=[
+                0.5, 0.5, 0.5], std=[
+                0.5, 0.5, 0.5])
 
     elif model_type == "dpt_large_384":
         model = DPTDepthModel(
@@ -155,7 +188,10 @@ def load_model(device, model_path, model_type="dpt_large_384", optimize=True, he
         )
         net_w, net_h = 384, 384
         resize_mode = "minimal"
-        normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        normalization = NormalizeImage(
+            mean=[
+                0.5, 0.5, 0.5], std=[
+                0.5, 0.5, 0.5])
 
     elif model_type == "dpt_hybrid_384":
         model = DPTDepthModel(
@@ -165,24 +201,35 @@ def load_model(device, model_path, model_type="dpt_large_384", optimize=True, he
         )
         net_w, net_h = 384, 384
         resize_mode = "minimal"
-        normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        normalization = NormalizeImage(
+            mean=[
+                0.5, 0.5, 0.5], std=[
+                0.5, 0.5, 0.5])
 
     elif model_type == "midas_v21_384":
         model = MidasNet(model_path, non_negative=True)
         net_w, net_h = 384, 384
         resize_mode = "upper_bound"
         normalization = NormalizeImage(
-            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-        )
+            mean=[
+                0.485, 0.456, 0.406], std=[
+                0.229, 0.224, 0.225])
 
     elif model_type == "midas_v21_small_256":
-        model = MidasNet_small(model_path, features=64, backbone="efficientnet_lite3", exportable=True,
-                               non_negative=True, blocks={'expand': True})
+        model = MidasNet_small(
+            model_path,
+            features=64,
+            backbone="efficientnet_lite3",
+            exportable=True,
+            non_negative=True,
+            blocks={"expand": True},
+        )
         net_w, net_h = 256, 256
         resize_mode = "upper_bound"
         normalization = NormalizeImage(
-            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-        )
+            mean=[
+                0.485, 0.456, 0.406], std=[
+                0.229, 0.224, 0.225])
 
     elif model_type == "openvino_midas_v21_small_256":
         ie = Core()
@@ -191,15 +238,18 @@ def load_model(device, model_path, model_type="dpt_large_384", optimize=True, he
         net_w, net_h = 256, 256
         resize_mode = "upper_bound"
         normalization = NormalizeImage(
-            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-        )
+            mean=[
+                0.485, 0.456, 0.406], std=[
+                0.229, 0.224, 0.225])
 
     else:
-        print(f"model_type '{model_type}' not implemented, use: --model_type large")
+        print(
+            f"model_type '{model_type}' not implemented, use: --model_type large")
         assert False
 
-    if not "openvino" in model_type:
-        print("Model loaded, number of parameters = {:.0f}M".format(sum(p.numel() for p in model.parameters()) / 1e6))
+    if "openvino" not in model_type:
+        print("Model loaded, number of parameters = {:.0f}M".format(
+            sum(p.numel() for p in model.parameters()) / 1e6))
     else:
         print("Model loaded, optimized with OpenVINO")
 
@@ -225,18 +275,19 @@ def load_model(device, model_path, model_type="dpt_large_384", optimize=True, he
         ]
     )
 
-    if not "openvino" in model_type:
+    if "openvino" not in model_type:
         model.eval()
 
     if optimize and (device == torch.device("cuda")):
-        if not "openvino" in model_type:
+        if "openvino" not in model_type:
             model = model.to(memory_format=torch.channels_last)
             model = model.half()
         else:
-            print("Error: OpenVINO models are already optimized. No optimization to half-float possible.")
+            print(
+                "Error: OpenVINO models are already optimized. No optimization to half-float possible.")
             exit()
 
-    if not "openvino" in model_type:
+    if "openvino" not in model_type:
         model.to(device)
 
     return model, transform, net_w, net_h

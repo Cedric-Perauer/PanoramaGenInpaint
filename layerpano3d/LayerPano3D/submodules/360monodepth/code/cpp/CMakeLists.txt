@@ -26,7 +26,7 @@ if (OPENMP_FOUND)
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
-# GTest 
+# GTest
 enable_testing()
 find_package(GTest REQUIRED)
 
@@ -87,12 +87,12 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     set_target_properties(${MODULE_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS 1)
 endif()
 
-target_include_directories(${MODULE_NAME} PRIVATE 
+target_include_directories(${MODULE_NAME} PRIVATE
   ${PROJECT_SOURCE_DIR}/3rd_party/
   ${PROJECT_SOURCE_DIR}/include/
   ${EIGEN3_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIR}
-  ${OpenCV_INCLUDE_DIRS} 
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 target_link_libraries(${MODULE_NAME}
@@ -116,7 +116,7 @@ message("Python3_NumPy_INCLUDE_DIRS:${Python3_NumPy_INCLUDE_DIR}")
 message("Python3_NumPy_VERSION:${Python3_NumPy_VERSION}")
 
 set(MODULE_NAME depthmapAlign_pymodule)
-add_library(${MODULE_NAME}  SHARED 
+add_library(${MODULE_NAME}  SHARED
     ${PROJECT_SOURCE_DIR}/python/instaOmniDepth/depthmapAlignModule.cpp
 )
 set_target_properties(${MODULE_NAME}  PROPERTIES SUFFIX ".pyd")
@@ -126,14 +126,14 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     # target_compile_definitions(depthmapAlignModule PUBLIC Py_LIMITED_API)
 endif()
 
-target_include_directories(${MODULE_NAME}  PRIVATE 
+target_include_directories(${MODULE_NAME}  PRIVATE
   ${Python3_INCLUDE_DIRS}
   ${PROJECT_SOURCE_DIR}/include/
   ${Python3_NumPy_INCLUDE_DIRS}
 )
 
-target_link_libraries(${MODULE_NAME} 
-  PRIVATE 
+target_link_libraries(${MODULE_NAME}
+  PRIVATE
   ${Python3_LIBRARIES}
   depth_stitch
   Python3::NumPy
@@ -149,10 +149,10 @@ add_executable(${MODULE_NAME}
 set_target_properties(${MODULE_NAME} PROPERTIES VS_DEBUGGER_ENVIRONMENT "${RUNTIMT_ENV_PATH}")
 set_target_properties(${MODULE_NAME} PROPERTIES DEBUG_POSTFIX "_d")
 
-target_include_directories(${MODULE_NAME} PRIVATE 
+target_include_directories(${MODULE_NAME} PRIVATE
   ${headers}
   ${PROJECT_SOURCE_DIR}/include/
-  ${OpenCV_INCLUDE_DIRS} 
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 target_link_libraries(${MODULE_NAME}
@@ -182,7 +182,7 @@ target_include_directories(${MODULE_NAME} PUBLIC
 
 target_link_libraries(${MODULE_NAME}
   depth_stitch
-  GTest::GTest 
+  GTest::GTest
   GTest::Main
   #   glog::glog
   ${GLOG_LIBRARIES}

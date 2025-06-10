@@ -146,7 +146,7 @@ void depthmap_stitch(const std::string& root_dir, const std::vector<std::string>
 
 int main(int argc, char** argv)
 {
-	// 0) parser the CLI parameter 
+	// 0) parser the CLI parameter
 	if (argc <= 2)
 		LOG(ERROR) << "The input arguments is less than 3.";
 	gflags::ParseCommandLineFlags(&argc, &argv, true);

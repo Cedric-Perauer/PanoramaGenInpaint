@@ -14,7 +14,7 @@ DepthmapStitcherGroup::~DepthmapStitcherGroup() {}
 
 
 //struct DepthmapStitcherGroup::ReprojectionResidual_fixed {
-//	ReprojectionResidual_fixed(double* bilinear_weight_list_tar, 
+//	ReprojectionResidual_fixed(double* bilinear_weight_list_tar,
 //		double depth_value_tar, double depth_value_ref,
 //		int grid_width, int grid_height) :
 //		bilinear_weight_list_tar_(bilinear_weight_list_tar),
@@ -46,7 +46,7 @@ DepthmapStitcherGroup::~DepthmapStitcherGroup() {}
 //	const int grid_height_; // the weight grid along the y axis
 //};
 
-// TODO capsule more function to refer Ceres demo. 
+// TODO capsule more function to refer Ceres demo.
 struct DepthmapStitcherGroup::ReprojectionResidual {
 	ReprojectionResidual(double* bilinear_weight_list_tar, double* bilinear_weight_list_src,
 		double depth_value_tar, double depth_value_src,
@@ -235,7 +235,7 @@ void DepthmapStitcherGroup::compute_align_coeff()
 	int image_width = depthmap_original[0].cols;
 	int image_height = depthmap_original[0].rows;
 
-	// set the reference depth map scale and offset 
+	// set the reference depth map scale and offset
 	int depthmap_ref_intidx = extidx2intidx[depthmap_ref_extidx];
 	coeff_so.coeff_scale_mat[depthmap_ref_intidx].setTo(1.0);
 	coeff_so.coeff_offset_mat[depthmap_ref_intidx].setTo(0.0);
@@ -282,7 +282,7 @@ void DepthmapStitcherGroup::compute_align_coeff()
 		LOG(INFO) << "Enable perpixel reprojection weight, pixel_corr_num is " << pixel_corr_num << ", term weight is " << weight_reprojection;
 	}
 	// TODO allocate memory once and assign pointer for each corresponding weights
-	
+
 	if (smooth_pergrid_enable)
 	{
 		unsigned int smooth_gird_numb = 0;
@@ -297,7 +297,7 @@ void DepthmapStitcherGroup::compute_align_coeff()
 	#pragma omp parallel for ordered schedule(dynamic) num_threads(omp_num_threads)
 	for (int depthmap_index_src = 0; depthmap_index_src < depthmap_original.size(); depthmap_index_src++)
 	{
-		DLOG(INFO) << "Adding the " << depthmap_index_src << " depth alignment information to problem."; 
+		DLOG(INFO) << "Adding the " << depthmap_index_src << " depth alignment information to problem.";
 		const cv::Mat& depth_map_src = depthmap_original[depthmap_index_src];
 		//LOG(INFO) << "Target depth map" << depthmap_index_tar;
 		for (int depthmap_index_tar = 0; depthmap_index_tar < depthmap_original.size(); depthmap_index_tar++)
@@ -354,7 +354,7 @@ void DepthmapStitcherGroup::compute_align_coeff()
 				//cv::Mat bilinear_weight_list_mat_src(cv::Size( coeff_so.coeff_cols, coeff_so.coeff_rows), CV_64FC1, bilinear_weight_src);
 				//cv::Mat bilinear_weight_list_mat_tar(cv::Size(coeff_so.coeff_cols, coeff_so.coeff_rows), CV_64FC1, bilinear_weight_tar);
 
-				// add residual block 
+				// add residual block
 				//if (depthmap_index_tar != depthmap_ref_intidx && depthmap_index_src != depthmap_ref_intidx)
 				{
 					// TODO The cauchyless is made bad result. figure our reason.

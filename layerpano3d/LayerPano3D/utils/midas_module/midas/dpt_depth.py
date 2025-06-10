@@ -15,7 +15,7 @@ from .backbones.levit import stem_b4_transpose
 from timm.models.layers import get_act_layer
 
 
-def _make_fusion_block(features, use_bn, size = None):
+def _make_fusion_block(features, use_bn, size=None):
     return FeatureFusionBlock_custom(
         features,
         nn.ReLU(False),
@@ -43,18 +43,24 @@ class DPT(BaseModel):
 
         self.channels_last = channels_last
 
-        # For the Swin, Swin 2, LeViT and Next-ViT Transformers, the hierarchical architectures prevent setting the 
-        # hooks freely. Instead, the hooks have to be chosen according to the ranges specified in the comments.
+        # For the Swin, Swin 2, LeViT and Next-ViT Transformers, the hierarchical architectures prevent setting the
+        # hooks freely. Instead, the hooks have to be chosen according to the
+        # ranges specified in the comments.
         hooks = {
             "beitl16_512": [5, 11, 17, 23],
             "beitl16_384": [5, 11, 17, 23],
             "beitb16_384": [2, 5, 8, 11],
-            "swin2l24_384": [1, 1, 17, 1],  # Allowed ranges: [0, 1], [0,  1], [ 0, 17], [ 0,  1]
-            "swin2b24_384": [1, 1, 17, 1],                  # [0, 1], [0,  1], [ 0, 17], [ 0,  1]
-            "swin2t16_256": [1, 1, 5, 1],                   # [0, 1], [0,  1], [ 0,  5], [ 0,  1]
-            "swinl12_384": [1, 1, 17, 1],                   # [0, 1], [0,  1], [ 0, 17], [ 0,  1]
-            "next_vit_large_6m": [2, 6, 36, 39],            # [0, 2], [3,  6], [ 7, 36], [37, 39]
-            "levit_384": [3, 11, 21],                       # [0, 3], [6, 11], [14, 21]
+            # Allowed ranges: [0, 1], [0,  1], [ 0, 17], [ 0,  1]
+            "swin2l24_384": [1, 1, 17, 1],
+            # [0, 1], [0,  1], [ 0, 17], [ 0,  1]
+            "swin2b24_384": [1, 1, 17, 1],
+            # [0, 1], [0,  1], [ 0,  5], [ 0,  1]
+            "swin2t16_256": [1, 1, 5, 1],
+            # [0, 1], [0,  1], [ 0, 17], [ 0,  1]
+            "swinl12_384": [1, 1, 17, 1],
+            # [0, 2], [3,  6], [ 7, 36], [37, 39]
+            "next_vit_large_6m": [2, 6, 36, 39],
+            "levit_384": [3, 11, 21],  # [0, 3], [6, 11], [14, 21]
             "vitb_rn50_384": [0, 1, 8, 11],
             "vitb16_384": [2, 5, 8, 11],
             "vitl16_384": [5, 11, 17, 23],
@@ -71,7 +77,7 @@ class DPT(BaseModel):
         self.pretrained, self.scratch = _make_encoder(
             backbone,
             features,
-            False, # Set to true of you want to train from scratch, uses ImageNet weights
+            False,  # Set to true of you want to train from scratch, uses ImageNet weights
             groups=1,
             expand=False,
             exportable=False,
@@ -90,25 +96,27 @@ class DPT(BaseModel):
             self.forward_transformer = forward_swin
         elif "next_vit" in backbone:
             from .backbones.next_vit import forward_next_vit
+
             self.forward_transformer = forward_next_vit
         elif "levit" in backbone:
             self.forward_transformer = forward_levit
             size_refinenet3 = 7
-            self.scratch.stem_transpose = stem_b4_transpose(256, 128, get_act_layer("hard_swish"))
+            self.scratch.stem_transpose = stem_b4_transpose(
+                256, 128, get_act_layer("hard_swish"))
         else:
             self.forward_transformer = forward_vit
 
         self.scratch.refinenet1 = _make_fusion_block(features, use_bn)
         self.scratch.refinenet2 = _make_fusion_block(features, use_bn)
-        self.scratch.refinenet3 = _make_fusion_block(features, use_bn, size_refinenet3)
+        self.scratch.refinenet3 = _make_fusion_block(
+            features, use_bn, size_refinenet3)
         if self.number_layers >= 4:
             self.scratch.refinenet4 = _make_fusion_block(features, use_bn)
 
         self.scratch.output_conv = head
 
-
     def forward(self, x):
-        if self.channels_last == True:
+        if self.channels_last:
             x.contiguous(memory_format=torch.channels_last)
 
         layers = self.forward_transformer(self.pretrained, x)
@@ -124,11 +132,15 @@ class DPT(BaseModel):
             layer_4_rn = self.scratch.layer4_rn(layer_4)
 
         if self.number_layers == 3:
-            path_3 = self.scratch.refinenet3(layer_3_rn, size=layer_2_rn.shape[2:])
+            path_3 = self.scratch.refinenet3(
+                layer_3_rn, size=layer_2_rn.shape[2:])
         else:
-            path_4 = self.scratch.refinenet4(layer_4_rn, size=layer_3_rn.shape[2:])
-            path_3 = self.scratch.refinenet3(path_4, layer_3_rn, size=layer_2_rn.shape[2:])
-        path_2 = self.scratch.refinenet2(path_3, layer_2_rn, size=layer_1_rn.shape[2:])
+            path_4 = self.scratch.refinenet4(
+                layer_4_rn, size=layer_3_rn.shape[2:])
+            path_3 = self.scratch.refinenet3(
+                path_4, layer_3_rn, size=layer_2_rn.shape[2:])
+        path_2 = self.scratch.refinenet2(
+            path_3, layer_2_rn, size=layer_1_rn.shape[2:])
         path_1 = self.scratch.refinenet1(path_2, layer_1_rn)
 
         if self.scratch.stem_transpose is not None:
@@ -148,11 +160,29 @@ class DPTDepthModel(DPT):
         kwargs.pop("head_features_2", None)
 
         head = nn.Sequential(
-            nn.Conv2d(head_features_1, head_features_1 // 2, kernel_size=3, stride=1, padding=1),
-            Interpolate(scale_factor=2, mode="bilinear", align_corners=True),
-            nn.Conv2d(head_features_1 // 2, head_features_2, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(
+                head_features_1,
+                head_features_1 // 2,
+                kernel_size=3,
+                stride=1,
+                padding=1),
+            Interpolate(
+                scale_factor=2,
+                mode="bilinear",
+                align_corners=True),
+            nn.Conv2d(
+                head_features_1 // 2,
+                head_features_2,
+                kernel_size=3,
+                stride=1,
+                padding=1),
             nn.ReLU(True),
-            nn.Conv2d(head_features_2, 1, kernel_size=1, stride=1, padding=0),
+            nn.Conv2d(
+                head_features_2,
+                1,
+                kernel_size=1,
+                stride=1,
+                padding=0),
             nn.ReLU(True) if non_negative else nn.Identity(),
             nn.Identity(),
         )
@@ -160,7 +190,7 @@ class DPTDepthModel(DPT):
         super().__init__(head, **kwargs)
 
         if path is not None:
-           self.load(path)
+            self.load(path)
 
     def forward(self, x):
         return super().forward(x).squeeze(dim=1)

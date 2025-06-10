@@ -10,7 +10,7 @@ source ~/catkin_ws/devel/setup.bash
 
 sudo rosdep init
 rosdep update
-#rospack depends1 midas_cpp 
+#rospack depends1 midas_cpp
 roscd midas_cpp
 #cat package.xml
 #rospack depends midas_cpp

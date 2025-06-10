@@ -61,7 +61,7 @@ To use another model, you should convert it from TensorFlow saved-model to TFlit
 
 ```python
 saved_model_export_dir = "./saved_model"
-converter = tf.lite.TFLiteConverter.from_saved_model(saved_model_export_dir)    
+converter = tf.lite.TFLiteConverter.from_saved_model(saved_model_export_dir)
 tflite_model = converter.convert()
 open(model_tflite_name, "wb").write("model.tflite")
 ```

@@ -26,6 +26,7 @@ from .transformer_2d import Transformer2DModel
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
+
 def get_up_block(
     up_block_type,
     num_layers,
@@ -59,7 +60,8 @@ def get_up_block(
         )
         attention_head_dim = num_attention_heads
 
-    up_block_type = up_block_type[7:] if up_block_type.startswith("UNetRes") else up_block_type
+    up_block_type = up_block_type[7:] if up_block_type.startswith(
+        "UNetRes") else up_block_type
     if up_block_type == "UpBlock2D":
         return UpBlock2D(
             num_layers=num_layers,
@@ -75,7 +77,8 @@ def get_up_block(
         )
     elif up_block_type == "CrossAttnUpBlock2D":
         if cross_attention_dim is None:
-            raise ValueError("cross_attention_dim must be specified for CrossAttnUpBlock2D")
+            raise ValueError(
+                "cross_attention_dim must be specified for CrossAttnUpBlock2D")
         return CrossAttnUpBlock2D(
             num_layers=num_layers,
             transformer_layers_per_block=transformer_layers_per_block,
@@ -98,6 +101,7 @@ def get_up_block(
         )
 
     raise ValueError(f"{up_block_type} does not exist.")
+
 
 class CrossAttnUpBlock2D(nn.Module):
     def __init__(
@@ -123,7 +127,7 @@ class CrossAttnUpBlock2D(nn.Module):
         only_cross_attention=False,
         upcast_attention=False,
         attention_type="default",
-        use_pixelwise_attention=True, 
+        use_pixelwise_attention=True,
     ):
         super().__init__()
         resnets = []
@@ -133,7 +137,8 @@ class CrossAttnUpBlock2D(nn.Module):
         self.num_attention_heads = num_attention_heads
 
         for i in range(num_layers):
-            res_skip_channels = in_channels if (i == num_layers - 1) else out_channels
+            res_skip_channels = in_channels if (
+                i == num_layers - 1) else out_channels
             resnet_in_channels = prev_output_channel if i == 0 else out_channels
 
             resnets.append(
@@ -158,7 +163,7 @@ class CrossAttnUpBlock2D(nn.Module):
                         in_channels=out_channels,
                         num_layers=transformer_layers_per_block,
                         cross_attention_dim=cross_attention_dim,
-                        pixelwise_cross_attention_dim=res_skip_channels, ##################
+                        pixelwise_cross_attention_dim=res_skip_channels,
                         norm_num_groups=resnet_groups,
                         use_linear_projection=use_linear_projection,
                         only_cross_attention=only_cross_attention,
@@ -182,7 +187,8 @@ class CrossAttnUpBlock2D(nn.Module):
         self.resnets = nn.ModuleList(resnets)
 
         if add_upsample:
-            self.upsamplers = nn.ModuleList([Upsample2D(out_channels, use_conv=True, out_channels=out_channels)])
+            self.upsamplers = nn.ModuleList(
+                [Upsample2D(out_channels, use_conv=True, out_channels=out_channels)])
         else:
             self.upsamplers = None
 
@@ -204,7 +210,8 @@ class CrossAttnUpBlock2D(nn.Module):
             # pop res hidden states
             res_hidden_states = res_hidden_states_tuple[-1]
             res_hidden_states_tuple = res_hidden_states_tuple[:-1]
-            hidden_states = torch.cat([hidden_states, res_hidden_states], dim=1)
+            hidden_states = torch.cat(
+                [hidden_states, res_hidden_states], dim=1)
 
             pixelwise_hidden_state = pixelwise_hidden_states[-1]
             pixelwise_hidden_states = pixelwise_hidden_states[:-1]
@@ -220,7 +227,8 @@ class CrossAttnUpBlock2D(nn.Module):
 
                     return custom_forward
 
-                ckpt_kwargs: Dict[str, Any] = {"use_reentrant": False} if is_torch_version(">=", "1.11.0") else {}
+                ckpt_kwargs: Dict[str, Any] = {
+                    "use_reentrant": False} if is_torch_version(">=", "1.11.0") else {}
                 hidden_states = torch.utils.checkpoint.checkpoint(
                     create_custom_forward(resnet),
                     hidden_states,

@@ -11,4 +11,3 @@ else
     curl --create-dirs -o "${TFLITE_FILE}" -LJO "${MODEL_SRC}"
     echo "INFO: Downloaded TensorFlow Lite model to ${TFLITE_FILE}."
 fi
-

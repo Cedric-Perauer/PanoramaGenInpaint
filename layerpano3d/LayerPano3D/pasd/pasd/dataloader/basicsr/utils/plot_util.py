@@ -13,8 +13,8 @@ def read_data_from_tensorboard(log_path, tag):
     # tensorboard event
     event_acc = EventAccumulator(log_path)
     event_acc.Reload()
-    scalar_list = event_acc.Tags()['scalars']
-    print('tag list: ', scalar_list)
+    scalar_list = event_acc.Tags()["scalars"]
+    print("tag list: ", scalar_list)
     steps = [int(s.step) for s in event_acc.Scalars(tag)]
     values = [s.value for s in event_acc.Scalars(tag)]
     return steps, values
@@ -66,7 +66,7 @@ def read_data_from_txt_1v(path, pattern):
 
 
 def smooth_data(values, smooth_weight):
-    """ Smooth data using 1st-order IIR low-pass filter (what tensorflow does).
+    """Smooth data using 1st-order IIR low-pass filter (what tensorflow does).
 
     Reference: https://github.com/tensorflow/tensorboard/blob/f801ebf1f9fbfe2baee1ddd65714d0bccc640fb1/tensorboard/plugins/scalar/vz_line_chart/vz-line-chart.ts#L704  # noqa: E501
 

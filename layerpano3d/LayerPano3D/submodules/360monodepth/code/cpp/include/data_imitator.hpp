@@ -114,7 +114,7 @@ public:
 	// the root folder to output test data
 	std::string output_root_dir;
 
-	// create the template of depth map and coefficient 
+	// create the template of depth map and coefficient
 	void initial();
 
 	/**
@@ -123,7 +123,7 @@ public:
 	void make_aligncoeffs_simple(); // constant value number
 	void make_aligncoeffs_random(); // random number
 
-	// the deform grid weight is 
+	// the deform grid weight is
 	void make_depthmap_pair(); // constant value number
 
 	/**
@@ -149,7 +149,7 @@ public:
 	std::map<int, std::map<int, cv::Mat>> coeff_offset_list;
 
 	// the depth map list 1st, 2nd, 3rd, the last depth map is the reference depth map
-	std::map<int, cv::Mat> depthmap_list; // 
+	std::map<int, cv::Mat> depthmap_list; //
 	std::map<int, cv::Mat> depthmap_template_list;
 
 	// the template of the depth map & alignment coefficient

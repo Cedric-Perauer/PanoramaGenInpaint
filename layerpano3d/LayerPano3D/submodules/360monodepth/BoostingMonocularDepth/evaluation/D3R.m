@@ -32,7 +32,7 @@ for i=1:length(center_points)
              point_pairs{j} = j_neighbours;
         end
         index1=center_points(i);
-        index2=center_points(j); 
+        index2=center_points(j);
         if(gt(index1)~=0 && gt(index2)~=0) % error in GT
              if ord(gt(index1),gt(index2),1+freq_ratio)~=0
                 er = abs(ord(inflamed_gt(index1),inflamed_gt(index2),same_ratio_gt) - ord(depth_est(index1),depth_est(index2),same_ratio_est));

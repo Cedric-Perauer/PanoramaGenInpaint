@@ -5,10 +5,10 @@ log = Logger(__name__)
 log.logger.propagate = False
 
 
-def find_intersection(p1,  p2,  p3,  p4):
+def find_intersection(p1, p2, p3, p4):
     """Find the point of intersection between two line.
     Work on 3D plane.
-    
+
     The two lines are p1 --> p2 and p3 --> p4.
     Reference:http://csharphelper.com/blog/2020/12/enlarge-a-polygon-that-has-colinear-vertices-in-c/
 
@@ -29,7 +29,7 @@ def find_intersection(p1,  p2,  p3,  p4):
     dx34 = p4[0] - p3[0]
     dy34 = p4[1] - p3[1]
 
-    denominator = (dy12 * dx34 - dx12 * dy34)
+    denominator = dy12 * dx34 - dx12 * dy34
     if denominator == 0:
         # The two lines are parallel
         return None
@@ -43,17 +43,17 @@ def find_intersection(p1,  p2,  p3,  p4):
 
 
 def is_clockwise(point_list):
-    """Check whether the list is clockwise. 
+    """Check whether the list is clockwise.
 
     :param point_list: the point lists
-    :type point_list: numpy 
+    :type point_list: numpy
     :return: yes if the points are clockwise, otherwise is no
     :rtype: bool
     """
     sum = 0
     for i in range(len(point_list)):
         cur = point_list[i]
-        next = point_list[(i+1) % len(point_list)]
+        next = point_list[(i + 1) % len(point_list)]
         sum += (next[0] - cur[0]) * (next[1] + cur[1])
     return sum > 0
 
@@ -62,7 +62,7 @@ def enlarge_polygon(old_points, offset):
     """Return points representing an enlarged polygon.
 
     Reference: http://csharphelper.com/blog/2016/01/enlarge-a-polygon-in-c/
-    
+
     :param old_points: the polygon vertexes, and the points should be in clock wise
     :type: list [[x_1,y_1], [x_2, y_2]......]
     :param offset: the ratio of the polygon enlarged
@@ -78,14 +78,15 @@ def enlarge_polygon(old_points, offset):
             log.error("the points list is not clockwise.")
 
         # the points before and after j.
-        i = (j - 1)
+        i = j - 1
         if i < 0:
             i += num_points
         k = (j + 1) % num_points
 
         # 1) Move the points by the offset.
         # the points of line parallel to ij
-        v1 = np.array([old_points[j][0] - old_points[i][0], old_points[j][1] - old_points[i][1]], float)
+        v1 = np.array([old_points[j][0] - old_points[i][0],
+                      old_points[j][1] - old_points[i][1]], float)
         norm = np.linalg.norm(v1)
         v1 = v1 / norm * offset
         n1 = [-v1[1], v1[0]]
@@ -93,7 +94,8 @@ def enlarge_polygon(old_points, offset):
         pij2 = [old_points[j][0] + n1[0], old_points[j][1] + n1[1]]
 
         # the points of line parallel to jk
-        v2 = np.array([old_points[k][0] - old_points[j][0], old_points[k][1] - old_points[j][1]], float)
+        v2 = np.array([old_points[k][0] - old_points[j][0],
+                      old_points[k][1] - old_points[j][1]], float)
         norm = np.linalg.norm(v2)
         v2 = v2 / norm * offset
         n2 = [-v2[1], v2[0]]
@@ -108,7 +110,7 @@ def enlarge_polygon(old_points, offset):
 
 
 def generate_hexagon(circumradius=1.0, hexagon_type=0, draw_enable=False):
-    """ Figure out the 6 vertexes of regular hexagon.
+    """Figure out the 6 vertexes of regular hexagon.
     The coordinate center is hexagon center.
     The original of coordinate at the center of hexagon.
 
@@ -117,7 +119,7 @@ def generate_hexagon(circumradius=1.0, hexagon_type=0, draw_enable=False):
     :param hexagon_type: the hexagon type, 0 the point is on the y-axis, 1 the vertexes on the x-axis, defaults to 0
     :type hexagon_type: int, optional
     :return: the six vertexes of hexagon.[6,2],  the 1st and 2nd is x,y respectively.
-    :rtype: numpy 
+    :rtype: numpy
     """
     vertex_list = np.zeros((6, 2), dtype=np.double)
 
@@ -134,23 +136,26 @@ def generate_hexagon(circumradius=1.0, hexagon_type=0, draw_enable=False):
 
     if draw_enable:
         from PIL import Image, ImageDraw
+
         image_width = circumradius * 3
         image_height = circumradius * 3
         offset_width = image_width * 0.5
         offset_height = image_height * 0.5
-        image = Image.new('RGB', (image_height, image_width), 'white')
+        image = Image.new("RGB", (image_height, image_width), "white")
         draw = ImageDraw.Draw(image)
         vertex_list_ = np.zeros_like(vertex_list)
-        vertex_list_[:, 0] = vertex_list[:, 0] + offset_width  # the origin at upper-left of image.
+        # the origin at upper-left of image.
+        vertex_list_[:, 0] = vertex_list[:, 0] + offset_width
         vertex_list_[:, 1] = vertex_list[:, 1] + offset_height
-        draw.polygon(tuple(map(tuple, vertex_list_)), outline='black', fill='red')
+        draw.polygon(tuple(map(tuple, vertex_list_)),
+                     outline="black", fill="red")
         image.show()
 
     return vertex_list
 
 
 def isect_line_plane_3D(line_p0, line_p1, plane_point, plane_norm):
-    """ Get the intersection point between plane and line.
+    """Get the intersection point between plane and line.
 
     :param line_p0: a point on the line, shape is [3]
     :type line_p0: numpy
@@ -168,14 +173,14 @@ def isect_line_plane_3D(line_p0, line_p1, plane_point, plane_norm):
 
     if abs(dot) > np.finfo(np.float32).eps:
         w = line_p0 - plane_point
-        fac = - np.dot(plane_norm, w) / dot
+        fac = -np.dot(plane_norm, w) / dot
         return line_p0 + u * fac
     else:
         return None
 
 
 def triangle_bounding_rectangle_3D(head_point, edge_points):
-    """ The 3D bounding rectangle from the 3D triangle's 3 vertices.
+    """The 3D bounding rectangle from the 3D triangle's 3 vertices.
 
     :param head_point: The 3 vertices of the triangle, shape is [3], which is xyz.
     :type head_point: numpy

@@ -12,24 +12,25 @@ import numpy as np
 
 import tensorflow as tf
 
-width=256
-height=256
-model_name="model.tflite"
-#model_name="model_quant.tflite"
-image_name="dog.jpg"
+width = 256
+height = 256
+model_name = "model.tflite"
+# model_name="model_quant.tflite"
+image_name = "dog.jpg"
 
 # input
 img = cv2.imread(image_name)
 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) / 255.0
 
-mean=[0.485, 0.456, 0.406]
-std=[0.229, 0.224, 0.225]
+mean = [0.485, 0.456, 0.406]
+std = [0.229, 0.224, 0.225]
 img = (img - mean) / std
 
-img_resized = tf.image.resize(img, [width,height], method='bicubic', preserve_aspect_ratio=False)
-#img_resized = tf.transpose(img_resized, [2, 0, 1])
+img_resized = tf.image.resize(
+    img, [width, height], method="bicubic", preserve_aspect_ratio=False)
+# img_resized = tf.transpose(img_resized, [2, 0, 1])
 img_input = img_resized.numpy()
-reshape_img = img_input.reshape(1,width,height,3)
+reshape_img = img_input.reshape(1, width, height, 3)
 tensor = tf.convert_to_tensor(reshape_img, dtype=tf.float32)
 
 # load model
@@ -41,13 +42,13 @@ print("Get input/output details...")
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
 print("Get input shape...")
-input_shape = input_details[0]['shape']
+input_shape = input_details[0]["shape"]
 print(input_shape)
 print(input_details)
 print(output_details)
-#input_data = np.array(np.random.random_sample(input_shape), dtype=np.float32)
+# input_data = np.array(np.random.random_sample(input_shape), dtype=np.float32)
 print("Set input tensor...")
-interpreter.set_tensor(input_details[0]['index'], tensor)
+interpreter.set_tensor(input_details[0]["index"], tensor)
 
 print("invoke()...")
 interpreter.invoke()
@@ -55,21 +56,22 @@ interpreter.invoke()
 # The function `get_tensor()` returns a copy of the tensor data.
 # Use `tensor()` in order to get a pointer to the tensor.
 print("get output tensor...")
-output = interpreter.get_tensor(output_details[0]['index'])
-#output = np.squeeze(output)
+output = interpreter.get_tensor(output_details[0]["index"])
+# output = np.squeeze(output)
 output = output.reshape(width, height)
-#print(output)
+# print(output)
 prediction = np.array(output)
 print("reshape prediction...")
 prediction = prediction.reshape(width, height)
-             
+
 # output file
-#prediction = cv2.resize(prediction, (img.shape[1], img.shape[0]), interpolation=cv2.INTER_CUBIC)
+# prediction = cv2.resize(prediction, (img.shape[1], img.shape[0]), interpolation=cv2.INTER_CUBIC)
 print(" Write image to: output.png")
 depth_min = prediction.min()
 depth_max = prediction.max()
-img_out = (255 * (prediction - depth_min) / (depth_max - depth_min)).astype("uint8")
+img_out = (255 * (prediction - depth_min) /
+           (depth_max - depth_min)).astype("uint8")
 print("save output image...")
 cv2.imwrite("output.png", img_out)
-        
+
 print("finished")

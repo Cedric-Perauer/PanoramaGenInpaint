@@ -6,7 +6,7 @@ load('ibims1_selected.mat');
 
 root_dir = '';
 
-ibims1_all_files = dir(sprintf('%s/ibims1/rgb/*.png',root_dir)); 
+ibims1_all_files = dir(sprintf('%s/ibims1/rgb/*.png',root_dir));
 
 for i=1:numel(ibims1_all_files)
     current_name = ibims1_all_files(i).name;

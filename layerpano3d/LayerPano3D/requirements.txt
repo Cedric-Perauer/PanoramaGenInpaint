@@ -25,7 +25,7 @@ wldhx.yadisk-direct
 diffusers==0.32.0
 transformers==4.45.2
 git+https://github.com/facebookresearch/segment-anything.git
-imageio-ffmpeg==0.4.9 
+imageio-ffmpeg==0.4.9
 colorama==0.4.6
 cython==3.0.11
 shapely==2.0.7
@@ -43,7 +43,3 @@ mmcv
 natten==0.14.4
 ultralytics==8.3.74
 open_clip_torch==2.30.0
-
-
-
-

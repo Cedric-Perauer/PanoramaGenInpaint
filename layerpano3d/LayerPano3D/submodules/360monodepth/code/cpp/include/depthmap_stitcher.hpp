@@ -92,7 +92,7 @@ public:
 	/**
 	 * Save and load coeff to and from file.
 	 */
-	void get_align_coeff(std::vector<cv::Mat>& coeff); 
+	void get_align_coeff(std::vector<cv::Mat>& coeff);
 	void save_align_coeff();
 
 	/**
@@ -149,7 +149,7 @@ public:
 	int ceres_max_linear_solver_iterations = -1;
 	int ceres_min_linear_solver_iterations = -1;
 
-	// perpixel or pergrid term weight 
+	// perpixel or pergrid term weight
 	bool projection_per_pixelcost_enable = false;
 	bool smooth_pergrid_enable = false;
 

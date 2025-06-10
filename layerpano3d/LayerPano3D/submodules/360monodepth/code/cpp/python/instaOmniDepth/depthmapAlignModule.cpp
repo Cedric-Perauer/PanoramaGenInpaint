@@ -247,7 +247,7 @@ static PyObject* depthmap_stitch(PyObject* self, PyObject* args)
 	int reference_depthmap_index;        // the reference depth map index of ico sub depth maps.
 	int align_coeff_grid_height;        // int
 	int align_coeff_grid_width;
-	int debug_wait_for_attach;            // 
+	int debug_wait_for_attach;            //
 	int reproj_perpixel_enable;
 	int smooth_pergrid_enable;
 
@@ -270,7 +270,7 @@ static PyObject* depthmap_stitch(PyObject* self, PyObject* args)
 		return NULL;
 	}
 
-	// // 
+	// //
 	// std::cout << "debug_wait_for_attach:" << debug_wait_for_attach << std::endl;
 	// std::cout << "reference_depthmap_index:" <<reference_depthmap_index << std::endl;
 	// std::cout << "align_coeff_grid_height: " << align_coeff_grid_height << std::endl;

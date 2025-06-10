@@ -18,11 +18,11 @@ This repository provides a Inpainting ControlNet checkpoint for [FLUX.1-dev](htt
 
 ## News
 
- 🎉 Thanks to @comfyanonymous，ComfyUI now supports inference for Alimama inpainting ControlNet. Workflow can be downloaded from [here](https://huggingface.co/alimama-creative/FLUX.1-dev-Controlnet-Inpainting-Alpha/resolve/main/images/alimama-flux-controlnet-inpaint.json). 
- 
+ 🎉 Thanks to @comfyanonymous，ComfyUI now supports inference for Alimama inpainting ControlNet. Workflow can be downloaded from [here](https://huggingface.co/alimama-creative/FLUX.1-dev-Controlnet-Inpainting-Alpha/resolve/main/images/alimama-flux-controlnet-inpaint.json).
+
 ComfyUI Usage Tips:
 
-  * Using the `t5xxl-FP16` and `flux1-dev-fp8` models for 28-step inference, the GPU memory usage is 27GB. The inference time with `cfg=3.5` is 27 seconds, while without `cfg=1` it is 15 seconds. `Hyper-FLUX-lora` can be used to accelerate inference. 
+  * Using the `t5xxl-FP16` and `flux1-dev-fp8` models for 28-step inference, the GPU memory usage is 27GB. The inference time with `cfg=3.5` is 27 seconds, while without `cfg=1` it is 15 seconds. `Hyper-FLUX-lora` can be used to accelerate inference.
   * You can try adjusting（lower） the parameters `control-strength`, `control-end-percent`, and `cfg` to achieve better results.
   * The following example uses `control-strength` = 0.9 & `control-end-percent` = 1.0 & `cfg` = 3.5
 
@@ -34,7 +34,7 @@ ComfyUI Usage Tips:
 | ![Image7](https://huggingface.co/alimama-creative/FLUX.1-dev-Controlnet-Inpainting-Alpha/resolve/main/images/comfy_in_4.png) | ![Image8](https://huggingface.co/alimama-creative/FLUX.1-dev-Controlnet-Inpainting-Alpha/resolve/main/images/comfy_out_4.png) | <small><i>The image depicts a beautiful young woman sitting at a desk, reading a book. She has long, wavy brown hair and is wearing a grey shirt with a black cardigan. She is holding a <span style="color:red; font-weight:bold;">red pencil</span> in her left hand and appears to be deep in thought. Surrounding her are numerous books, some stacked on the desk and others placed on a shelf behind her. A potted plant is also visible in the background, adding a touch of greenery to the scene. The image conveys a sense of serenity and intellectual pursuits. </i></small>|
 
 
-## Model Cards 
+## Model Cards
 
 * The model was trained on 12M laion2B and internal source images at resolution 1024x1024. The inference performs best at this size, with other sizes yielding suboptimal results.
 

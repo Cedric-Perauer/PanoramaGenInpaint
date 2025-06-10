@@ -1,6 +1,6 @@
 # Differential Gaussian Rasterization
 
-**NOTE**: this is a modified version to support depth & alpha rendering (both forward and backward) from the [original repository](https://github.com/graphdeco-inria/diff-gaussian-rasterization). 
+**NOTE**: this is a modified version to support depth & alpha rendering (both forward and backward) from the [original repository](https://github.com/graphdeco-inria/diff-gaussian-rasterization).
 
 ```python
 rendered_image, radii, rendered_depth, rendered_alpha = rasterizer(

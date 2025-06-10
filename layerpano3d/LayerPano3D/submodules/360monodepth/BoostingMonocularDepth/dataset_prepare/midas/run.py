@@ -1,5 +1,6 @@
 """Compute depth maps for images in the input folder.
 """
+
 import os
 import glob
 import torch
@@ -39,10 +40,17 @@ def run(input_path, output_path, model_path, process_res):
                 resize_method="upper_bound",
                 image_interpolation_method=cv2.INTER_CUBIC,
             ),
-            NormalizeImage(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            NormalizeImage(
+                mean=[
+                    0.485,
+                    0.456,
+                    0.406],
+                std=[
+                    0.229,
+                    0.224,
+                    0.225]),
             PrepareForNet(),
-        ]
-    )
+        ])
 
     model.to(device)
     model.eval()
@@ -83,18 +91,18 @@ def run(input_path, output_path, model_path, process_res):
 
         # output
         filename = os.path.join(
-            output_path, os.path.splitext(os.path.basename(img_name))[0]
-        )
+            output_path, os.path.splitext(
+                os.path.basename(img_name))[0])
         utils.write_depth(filename, prediction, bits=2)
 
     print("finished")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument('--input_dir', required=True, type=str)
-    parser.add_argument('--output_dir', required=True, type=str)
-    parser.add_argument('--res', required=True, type=int)
+    parser = argparse.ArgumentParser(description="Process some integers.")
+    parser.add_argument("--input_dir", required=True, type=str)
+    parser.add_argument("--output_dir", required=True, type=str)
+    parser.add_argument("--res", required=True, type=int)
     args = parser.parse_args()
 
     MODEL_PATH = "model.pt"

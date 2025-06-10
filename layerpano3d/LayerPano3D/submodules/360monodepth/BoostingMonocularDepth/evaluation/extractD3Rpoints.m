@@ -13,13 +13,13 @@ gt(isnan(gt))=0;
 
 idx = label2idx(L);
 [height, width, ~] = size(gt);
-neightbouring_rel = cell(NumLabels,1);    
+neightbouring_rel = cell(NumLabels,1);
 random_rel = cell(NumLabels,1);
 centers = zeros(NumLabels,1);
 for i = 1:NumLabels
     mask  = L == i;
     neightbouring_rel{i} = unique(L(bwdist(mask ,'euclidean')==1));
-    random_rel{i} = randi([1,NumLabels],3,1);   
+    random_rel{i} = randi([1,NumLabels],3,1);
     a = idx{i};
     center = computeCenter(a,height);
     centers(i) = center;

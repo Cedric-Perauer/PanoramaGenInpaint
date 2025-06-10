@@ -84,7 +84,7 @@ std::vector<cv::Mat> DataImitator::make_depthmap_pair_random()
 	// 0) get random coefficient
 	std::vector<cv::Mat> depthmap_pair = make_depthmap_pair_simple();
 
-	// 1) deform the depth map 
+	// 1) deform the depth map
 	DepthmapUtil::deform(depthmap_pair[0], depthmap_pair[1], coeff_list[2], coeff_list[3]);
 
 	depthmap_list.clear();

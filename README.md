@@ -1,2 +1,2 @@
 # PanoramaGenInpaint
-Panorama Generation with Inpainting Models 
+Panorama Generation with Inpainting Models

@@ -10,7 +10,7 @@ if (WIN32)
     #############################
     # DEPENDENCIES DIR
     #############################
-    # python 
+    # python
     set(Python3_ROOT_DIR "C:/Program Files/Python38")
 
     # Numpy
@@ -23,7 +23,7 @@ if (WIN32)
     # glog
     set(glog_DIR "D:/libraries_windows/glog/glog_with_gflags_0.5.0_msvc_14_2/glog-0.5.0-bin/lib/cmake/glog/")
     LIST(APPEND RUNTIMT_ENV_PATH_LIST "D:/libraries_windows/glog/glog_with_gflags_0.5.0_msvc_14_2/glog-0.5.0-bin/bin/")
- 
+
     # OpenCV
     set(OpenCV_DIR "D:/libraries_windows/opencv/opencv-4.5.3-vc14_vc15/build")
     LIST(APPEND RUNTIMT_ENV_PATH_LIST "D:/libraries_windows/opencv/opencv-4.5.3-vc14_vc15/build/x64/vc15/bin/")
@@ -32,7 +32,7 @@ if (WIN32)
     set(Ceres_DIR "D:/libraries_windows/ceres/ceres-solver-2.0.0-bin-wo-optim/CMake")
     LIST(APPEND RUNTIMT_ENV_PATH_LIST "D:/libraries_windows/ceres/ceres-solver-2.0.0-bin-wo-optim/bin/")
 
-    # GTest 
+    # GTest
     set(GTEST_INCLUDE_DIR "D:/libraries_windows/gtest/googletest-release-1.11.0-bin/include")
     set(GTEST_LIBRARY "D:/libraries_windows/gtest/googletest-release-1.11.0-bin/lib/gtest.lib")
     set(GETST_LIBRARY_DEBUG "D:/libraries_windows/gtest/googletest-release-1.11.0-bin/lib/gtestd.lib")

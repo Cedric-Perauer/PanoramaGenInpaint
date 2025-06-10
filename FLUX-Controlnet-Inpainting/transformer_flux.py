@@ -41,7 +41,12 @@ logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 def rope(pos: torch.Tensor, dim: int, theta: int) -> torch.Tensor:
     assert dim % 2 == 0, "The dimension must be even."
 
-    scale = torch.arange(0, dim, 2, dtype=torch.float64, device=pos.device) / dim
+    scale = torch.arange(
+        0,
+        dim,
+        2,
+        dtype=torch.float64,
+        device=pos.device) / dim
     omega = 1.0 / (theta**scale)
 
     batch_size, seq_length = pos.shape
@@ -64,10 +69,8 @@ class EmbedND(nn.Module):
 
     def forward(self, ids: torch.Tensor) -> torch.Tensor:
         n_axes = ids.shape[-1]
-        emb = torch.cat(
-            [rope(ids[..., i], self.axes_dim[i], self.theta) for i in range(n_axes)],
-            dim=-3,
-        )
+        emb = torch.cat([rope(ids[..., i], self.axes_dim[i], self.theta)
+                         for i in range(n_axes)], dim=-3, )
         return emb.unsqueeze(1)
 
 
@@ -86,7 +89,12 @@ class FluxSingleTransformerBlock(nn.Module):
             processing of `context` conditions.
     """
 
-    def __init__(self, dim, num_attention_heads, attention_head_dim, mlp_ratio=4.0):
+    def __init__(
+            self,
+            dim,
+            num_attention_heads,
+            attention_head_dim,
+            mlp_ratio=4.0):
         super().__init__()
         self.mlp_hidden_dim = int(dim * mlp_ratio)
 
@@ -150,8 +158,12 @@ class FluxTransformerBlock(nn.Module):
     """
 
     def __init__(
-        self, dim, num_attention_heads, attention_head_dim, qk_norm="rms_norm", eps=1e-6
-    ):
+            self,
+            dim,
+            num_attention_heads,
+            attention_head_dim,
+            qk_norm="rms_norm",
+            eps=1e-6):
         super().__init__()
 
         self.norm1 = AdaLayerNormZero(dim)
@@ -179,12 +191,15 @@ class FluxTransformerBlock(nn.Module):
         )
 
         self.norm2 = nn.LayerNorm(dim, elementwise_affine=False, eps=1e-6)
-        self.ff = FeedForward(dim=dim, dim_out=dim, activation_fn="gelu-approximate")
+        self.ff = FeedForward(
+            dim=dim,
+            dim_out=dim,
+            activation_fn="gelu-approximate")
 
-        self.norm2_context = nn.LayerNorm(dim, elementwise_affine=False, eps=1e-6)
+        self.norm2_context = nn.LayerNorm(
+            dim, elementwise_affine=False, eps=1e-6)
         self.ff_context = FeedForward(
-            dim=dim, dim_out=dim, activation_fn="gelu-approximate"
-        )
+            dim=dim, dim_out=dim, activation_fn="gelu-approximate")
 
         # let chunk size default to None
         self._chunk_size = None
@@ -198,8 +213,7 @@ class FluxTransformerBlock(nn.Module):
         image_rotary_emb=None,
     ):
         norm_hidden_states, gate_msa, shift_mlp, scale_mlp, gate_mlp = self.norm1(
-            hidden_states, emb=temb
-        )
+            hidden_states, emb=temb)
 
         (
             norm_encoder_hidden_states,
@@ -221,9 +235,8 @@ class FluxTransformerBlock(nn.Module):
         hidden_states = hidden_states + attn_output
 
         norm_hidden_states = self.norm2(hidden_states)
-        norm_hidden_states = (
-            norm_hidden_states * (1 + scale_mlp[:, None]) + shift_mlp[:, None]
-        )
+        norm_hidden_states = norm_hidden_states * \
+            (1 + scale_mlp[:, None]) + shift_mlp[:, None]
 
         ff_output = self.ff(norm_hidden_states)
         ff_output = gate_mlp.unsqueeze(1) * ff_output
@@ -236,15 +249,12 @@ class FluxTransformerBlock(nn.Module):
         encoder_hidden_states = encoder_hidden_states + context_attn_output
 
         norm_encoder_hidden_states = self.norm2_context(encoder_hidden_states)
-        norm_encoder_hidden_states = (
-            norm_encoder_hidden_states * (1 + c_scale_mlp[:, None])
-            + c_shift_mlp[:, None]
-        )
+        norm_encoder_hidden_states = norm_encoder_hidden_states * \
+            (1 + c_scale_mlp[:, None]) + c_shift_mlp[:, None]
 
         context_ff_output = self.ff_context(norm_encoder_hidden_states)
-        encoder_hidden_states = (
-            encoder_hidden_states + c_gate_mlp.unsqueeze(1) * context_ff_output
-        )
+        encoder_hidden_states = encoder_hidden_states + \
+            c_gate_mlp.unsqueeze(1) * context_ff_output
         if encoder_hidden_states.dtype == torch.float16:
             encoder_hidden_states = encoder_hidden_states.clip(-65504, 65504)
 
@@ -252,8 +262,10 @@ class FluxTransformerBlock(nn.Module):
 
 
 class FluxTransformer2DModel(
-    ModelMixin, ConfigMixin, PeftAdapterMixin, FromOriginalModelMixin
-):
+        ModelMixin,
+        ConfigMixin,
+        PeftAdapterMixin,
+        FromOriginalModelMixin):
     """
     The Transformer model introduced in Flux.
 
@@ -289,27 +301,23 @@ class FluxTransformer2DModel(
     ):
         super().__init__()
         self.out_channels = in_channels
-        self.inner_dim = (
-            self.config.num_attention_heads * self.config.attention_head_dim
-        )
+        self.inner_dim = self.config.num_attention_heads * self.config.attention_head_dim
 
         self.pos_embed = EmbedND(
-            dim=self.inner_dim, theta=10000, axes_dim=axes_dims_rope
-        )
+            dim=self.inner_dim,
+            theta=10000,
+            axes_dim=axes_dims_rope)
         text_time_guidance_cls = (
-            CombinedTimestepGuidanceTextProjEmbeddings
-            if guidance_embeds
-            else CombinedTimestepTextProjEmbeddings
-        )
+            CombinedTimestepGuidanceTextProjEmbeddings if guidance_embeds else CombinedTimestepTextProjEmbeddings)
         self.time_text_embed = text_time_guidance_cls(
             embedding_dim=self.inner_dim,
             pooled_projection_dim=self.config.pooled_projection_dim,
         )
 
         self.context_embedder = nn.Linear(
-            self.config.joint_attention_dim, self.inner_dim
-        )
-        self.x_embedder = torch.nn.Linear(self.config.in_channels, self.inner_dim)
+            self.config.joint_attention_dim, self.inner_dim)
+        self.x_embedder = torch.nn.Linear(
+            self.config.in_channels, self.inner_dim)
 
         self.transformer_blocks = nn.ModuleList(
             [
@@ -334,11 +342,13 @@ class FluxTransformer2DModel(
         )
 
         self.norm_out = AdaLayerNormContinuous(
-            self.inner_dim, self.inner_dim, elementwise_affine=False, eps=1e-6
-        )
+            self.inner_dim, self.inner_dim, elementwise_affine=False, eps=1e-6)
         self.proj_out = nn.Linear(
-            self.inner_dim, patch_size * patch_size * self.out_channels, bias=True
-        )
+            self.inner_dim,
+            patch_size *
+            patch_size *
+            self.out_channels,
+            bias=True)
 
         self.gradient_checkpointing = False
 
@@ -393,13 +403,12 @@ class FluxTransformer2DModel(
             lora_scale = 1.0
 
         if USE_PEFT_BACKEND:
-            # weight the lora layers by setting `lora_scale` for each PEFT layer
+            # weight the lora layers by setting `lora_scale` for each PEFT
+            # layer
             scale_lora_layers(self, lora_scale)
         else:
-            if (
-                joint_attention_kwargs is not None
-                and joint_attention_kwargs.get("scale", None) is not None
-            ):
+            if joint_attention_kwargs is not None and joint_attention_kwargs.get(
+                    "scale", None) is not None:
                 logger.warning(
                     "Passing `scale` via `joint_attention_kwargs` when not using the PEFT backend is ineffective."
                 )
@@ -433,9 +442,8 @@ class FluxTransformer2DModel(
 
                     return custom_forward
 
-                ckpt_kwargs: Dict[str, Any] = (
-                    {"use_reentrant": False} if is_torch_version(">=", "1.11.0") else {}
-                )
+                ckpt_kwargs: Dict[str, Any] = {
+                    "use_reentrant": False} if is_torch_version(">=", "1.11.0") else {}
                 (
                     encoder_hidden_states,
                     hidden_states,
@@ -458,16 +466,14 @@ class FluxTransformer2DModel(
 
             # controlnet residual
             if controlnet_block_samples is not None:
-                interval_control = len(self.transformer_blocks) / len(
-                    controlnet_block_samples
-                )
+                interval_control = len(
+                    self.transformer_blocks) / len(controlnet_block_samples)
                 interval_control = int(np.ceil(interval_control))
-                hidden_states = (
-                    hidden_states
-                    + controlnet_block_samples[index_block // interval_control]
-                )
+                hidden_states = hidden_states + \
+                    controlnet_block_samples[index_block // interval_control]
 
-        hidden_states = torch.cat([encoder_hidden_states, hidden_states], dim=1)
+        hidden_states = torch.cat(
+            [encoder_hidden_states, hidden_states], dim=1)
 
         for index_block, block in enumerate(self.single_transformer_blocks):
             if self.training and self.gradient_checkpointing:
@@ -481,9 +487,8 @@ class FluxTransformer2DModel(
 
                     return custom_forward
 
-                ckpt_kwargs: Dict[str, Any] = (
-                    {"use_reentrant": False} if is_torch_version(">=", "1.11.0") else {}
-                )
+                ckpt_kwargs: Dict[str, Any] = {
+                    "use_reentrant": False} if is_torch_version(">=", "1.11.0") else {}
                 hidden_states = torch.utils.checkpoint.checkpoint(
                     create_custom_forward(block),
                     hidden_states,
@@ -501,16 +506,15 @@ class FluxTransformer2DModel(
 
             # controlnet residual
             if controlnet_single_block_samples is not None:
-                interval_control = len(self.single_transformer_blocks) / len(
-                    controlnet_single_block_samples
-                )
+                interval_control = len(
+                    self.single_transformer_blocks) / len(controlnet_single_block_samples)
                 interval_control = int(np.ceil(interval_control))
-                hidden_states[:, encoder_hidden_states.shape[1] :, ...] = (
-                    hidden_states[:, encoder_hidden_states.shape[1] :, ...]
+                hidden_states[:, encoder_hidden_states.shape[1]:, ...] = (
+                    hidden_states[:, encoder_hidden_states.shape[1]:, ...]
                     + controlnet_single_block_samples[index_block // interval_control]
                 )
 
-        hidden_states = hidden_states[:, encoder_hidden_states.shape[1] :, ...]
+        hidden_states = hidden_states[:, encoder_hidden_states.shape[1]:, ...]
 
         hidden_states = self.norm_out(hidden_states, temb)
         output = self.proj_out(hidden_states)

@@ -3,21 +3,23 @@ import torch.nn as nn
 import torchsparse.nn as spnn
 from torchsparse.point_tensor import PointTensor
 from lib.spvcnn_utils import *
-__all__ = ['SPVCNN_CLASSIFICATION']
 
+__all__ = ["SPVCNN_CLASSIFICATION"]
 
 
 class BasicConvolutionBlock(nn.Module):
     def __init__(self, inc, outc, ks=3, stride=1, dilation=1):
         super().__init__()
         self.net = nn.Sequential(
-            spnn.Conv3d(inc,
-                                 outc,
-                                 kernel_size=ks,
-                                 dilation=dilation,
-                                 stride=stride),
+            spnn.Conv3d(
+                inc,
+                outc,
+                kernel_size=ks,
+                dilation=dilation,
+                stride=stride),
             spnn.BatchNorm(outc),
-            spnn.ReLU(True))
+            spnn.ReLU(True),
+        )
 
     def forward(self, x):
         out = self.net(x)
@@ -28,11 +30,12 @@ class BasicDeconvolutionBlock(nn.Module):
     def __init__(self, inc, outc, ks=3, stride=1):
         super().__init__()
         self.net = nn.Sequential(
-            spnn.Conv3d(inc,
-                                 outc,
-                                 kernel_size=ks,
-                                 stride=stride,
-                                 transpose=True),
+            spnn.Conv3d(
+                inc,
+                outc,
+                kernel_size=ks,
+                stride=stride,
+                transpose=True),
             spnn.BatchNorm(outc),
             spnn.ReLU(True))
 
@@ -44,25 +47,33 @@ class ResidualBlock(nn.Module):
     def __init__(self, inc, outc, ks=3, stride=1, dilation=1):
         super().__init__()
         self.net = nn.Sequential(
-            spnn.Conv3d(inc,
-                                 outc,
-                                 kernel_size=ks,
-                                 dilation=dilation,
-                                 stride=stride), spnn.BatchNorm(outc),
+            spnn.Conv3d(
+                inc,
+                outc,
+                kernel_size=ks,
+                dilation=dilation,
+                stride=stride),
+            spnn.BatchNorm(outc),
             spnn.ReLU(True),
-            spnn.Conv3d(outc,
-                                 outc,
-                                 kernel_size=ks,
-                                 dilation=dilation,
-                                 stride=1),
-            spnn.BatchNorm(outc)
-            )
+            spnn.Conv3d(
+                outc,
+                outc,
+                kernel_size=ks,
+                dilation=dilation,
+                stride=1),
+            spnn.BatchNorm(outc),
+        )
 
-        self.downsample = nn.Sequential() if (inc == outc and stride == 1) else \
-            nn.Sequential(
-                spnn.Conv3d(inc, outc, kernel_size=1, dilation=1, stride=stride),
-                spnn.BatchNorm(outc)
-            )
+        self.downsample = (
+            nn.Sequential() if (
+                inc == outc and stride == 1) else nn.Sequential(
+                spnn.Conv3d(
+                    inc,
+                    outc,
+                    kernel_size=1,
+                    dilation=1,
+                    stride=stride),
+                spnn.BatchNorm(outc)))
 
         self.relu = spnn.ReLU(True)
 
@@ -75,21 +86,20 @@ class SPVCNN_CLASSIFICATION(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
 
-        cr = kwargs.get('cr', 1.0)
+        cr = kwargs.get("cr", 1.0)
         cs = [32, 32, 64, 128, 256, 256, 128, 96, 96]
         cs = [int(cr * x) for x in cs]
 
-        if 'pres' in kwargs and 'vres' in kwargs:
-            self.pres = kwargs['pres']
-            self.vres = kwargs['vres']
+        if "pres" in kwargs and "vres" in kwargs:
+            self.pres = kwargs["pres"]
+            self.vres = kwargs["vres"]
 
         self.stem = nn.Sequential(
-            spnn.Conv3d(kwargs['input_channel'], cs[0], kernel_size=3, stride=1),
-            spnn.BatchNorm(cs[0]),
-            spnn.ReLU(True),
-            spnn.Conv3d(cs[0], cs[0], kernel_size=3, stride=1),
-            spnn.BatchNorm(cs[0]),
-            spnn.ReLU(True))
+            spnn.Conv3d(
+                kwargs["input_channel"], cs[0], kernel_size=3, stride=1), spnn.BatchNorm(
+                cs[0]), spnn.ReLU(True), spnn.Conv3d(
+                cs[0], cs[0], kernel_size=3, stride=1), spnn.BatchNorm(
+                    cs[0]), spnn.ReLU(True), )
 
         self.stage1 = nn.Sequential(
             BasicConvolutionBlock(cs[0], cs[0], ks=2, stride=2, dilation=1),
@@ -115,14 +125,17 @@ class SPVCNN_CLASSIFICATION(nn.Module):
             ResidualBlock(cs[4], cs[4], ks=3, stride=1, dilation=1),
         )
         self.avg_pool = spnn.GlobalAveragePooling()
-        self.classifier = nn.Sequential(nn.Linear(cs[4], kwargs['num_classes']))
-        self.point_transforms = nn.ModuleList([
-            nn.Sequential(
-                nn.Linear(cs[0], cs[4]),
-                nn.BatchNorm1d(cs[4]),
-                nn.ReLU(True),
-            ),
-        ])
+        self.classifier = nn.Sequential(
+            nn.Linear(cs[4], kwargs["num_classes"]))
+        self.point_transforms = nn.ModuleList(
+            [
+                nn.Sequential(
+                    nn.Linear(cs[0], cs[4]),
+                    nn.BatchNorm1d(cs[4]),
+                    nn.ReLU(True),
+                ),
+            ]
+        )
 
         self.weight_initialization()
         self.dropout = nn.Dropout(0.3, True)
@@ -154,7 +167,4 @@ class SPVCNN_CLASSIFICATION(nn.Module):
         pool = self.avg_pool(y1)
         out = self.classifier(pool)
 
-
         return out
-
-

@@ -4,7 +4,7 @@
 1. Set a confidence score for each Gaussian and scale gradient with the confidence scores.
 2. Implement depth and alpha rendering.
 
-**Acknowledge**: Thanks to the [3D Gaussian Splatting](https://github.com/graphdeco-inria/diff-gaussian-rasterization) and [DreamGaussian](https://github.com/ashawkey/diff-gaussian-rasterization). 
+**Acknowledge**: Thanks to the [3D Gaussian Splatting](https://github.com/graphdeco-inria/diff-gaussian-rasterization) and [DreamGaussian](https://github.com/ashawkey/diff-gaussian-rasterization).
 
 ```python
 raster_settings = GaussianRasterizationSettings(

@@ -109,11 +109,11 @@ z = model(x)
 
     and finally,
 
-    <img src="https://latex.codecogs.com/gif.latex?\frac{dJ}{dx_i}=\frac{dJ}{d\hat{x_i}}\frac{d\hat{x_i}}{dx_i}+\frac{dJ}{d\mu_i}\frac{d\mu_i}{dx_i}+\frac{dJ}{d\sigma^2_i}\frac{d\sigma^2_i}{dx_i}"/>  
+    <img src="https://latex.codecogs.com/gif.latex?\frac{dJ}{dx_i}=\frac{dJ}{d\hat{x_i}}\frac{d\hat{x_i}}{dx_i}+\frac{dJ}{d\mu_i}\frac{d\mu_i}{dx_i}+\frac{dJ}{d\sigma^2_i}\frac{d\sigma^2_i}{dx_i}"/>
 
-    <img src="https://latex.codecogs.com/gif.latex?=\frac{1}{N\sqrt{(\sigma^2+\epsilon)}}(N\frac{dJ}{d\hat{x_i}}-\sum_{j=1}^{N}(\frac{dJ}{d\hat{x_j}})-\hat{x_i}\sum_{j=1}^{N}(\frac{dJ}{d\hat{x_j}}\hat{x_j}))"/>  
+    <img src="https://latex.codecogs.com/gif.latex?=\frac{1}{N\sqrt{(\sigma^2+\epsilon)}}(N\frac{dJ}{d\hat{x_i}}-\sum_{j=1}^{N}(\frac{dJ}{d\hat{x_j}})-\hat{x_i}\sum_{j=1}^{N}(\frac{dJ}{d\hat{x_j}}\hat{x_j}))"/>
 
-    <img src="https://latex.codecogs.com/gif.latex?=\frac{\gamma}{N\sqrt{(\sigma^2+\epsilon)}}(N\frac{dJ}{dy_i}-\sum_{j=1}^{N}(\frac{dJ}{dy_j})-\hat{x_i}\sum_{j=1}^{N}(\frac{dJ}{dy_j}\hat{x_j}))"/>  
+    <img src="https://latex.codecogs.com/gif.latex?=\frac{\gamma}{N\sqrt{(\sigma^2+\epsilon)}}(N\frac{dJ}{dy_i}-\sum_{j=1}^{N}(\frac{dJ}{dy_j})-\hat{x_i}\sum_{j=1}^{N}(\frac{dJ}{dy_j}\hat{x_j}))"/>
 
    Note that in the implementation, normalization with N is performed at step (2) and above equation and implementation is not exactly the same, but mathematically is same.
 

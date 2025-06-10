@@ -11,8 +11,7 @@ import numpy as np
 import PIL.Image
 import torch
 import torch.nn.functional as F
-from diffusers import (AutoencoderKL, DiffusionPipeline,
-                       StableDiffusionControlNetImg2ImgPipeline)
+from diffusers import AutoencoderKL, DiffusionPipeline, StableDiffusionControlNetImg2ImgPipeline
 from diffusers.loaders import LoraLoaderMixin, TextualInversionLoaderMixin
 from diffusers.models import ControlNetModel
 from diffusers.models.autoencoders.vae import DecoderOutput
@@ -98,17 +97,17 @@ def parse_prompt_attention(text):
         text = m.group(0)
         weight = m.group(1)
 
-        if text.startswith('\\'):
+        if text.startswith("\\"):
             res.append([text[1:], 1.0])
-        elif text == '(':
+        elif text == "(":
             round_brackets.append(len(res))
-        elif text == '[':
+        elif text == "[":
             square_brackets.append(len(res))
         elif weight is not None and len(round_brackets) > 0:
             multiply_range(round_brackets.pop(), float(weight))
-        elif text == ')' and len(round_brackets) > 0:
+        elif text == ")" and len(round_brackets) > 0:
             multiply_range(round_brackets.pop(), round_bracket_multiplier)
-        elif text == ']' and len(square_brackets) > 0:
+        elif text == "]" and len(square_brackets) > 0:
             multiply_range(square_brackets.pop(), square_bracket_multiplier)
         else:
             res.append([text, 1.0])
@@ -120,7 +119,7 @@ def parse_prompt_attention(text):
         multiply_range(pos, square_bracket_multiplier)
 
     if len(res) == 0:
-        res = [['', 1.0]]
+        res = [["", 1.0]]
 
     # merge runs of identical weights
     i = 0
@@ -134,8 +133,10 @@ def parse_prompt_attention(text):
     return res
 
 
-def get_prompts_with_weights(pipe: DiffusionPipeline, prompt: List[str],
-                             max_length: int):
+def get_prompts_with_weights(
+        pipe: DiffusionPipeline,
+        prompt: List[str],
+        max_length: int):
     r"""
     Tokenize a list of prompts and return its tokens with weights of each token.
 
@@ -167,31 +168,30 @@ def get_prompts_with_weights(pipe: DiffusionPipeline, prompt: List[str],
         weights.append(text_weight)
     if truncated:
         logger.warning(
-            'Prompt was truncated. Try to shorten the prompt or increase max_embeddings_multiples'
-        )
+            "Prompt was truncated. Try to shorten the prompt or increase max_embeddings_multiples")
     return tokens, weights
 
 
-def pad_tokens_and_weights(tokens,
-                           weights,
-                           max_length,
-                           bos,
-                           eos,
-                           pad,
-                           no_boseos_middle=True,
-                           chunk_length=77):
+def pad_tokens_and_weights(
+        tokens,
+        weights,
+        max_length,
+        bos,
+        eos,
+        pad,
+        no_boseos_middle=True,
+        chunk_length=77):
     r"""
     Pad the tokens (with starting and ending tokens) and weights (with 1.0) to max_length.
     """
     max_embeddings_multiples = (max_length - 2) // (chunk_length - 2)
     weights_length = max_length if no_boseos_middle else max_embeddings_multiples * chunk_length
     for i in range(len(tokens)):
-        tokens[i] = [
-            bos
-        ] + tokens[i] + [pad] * (max_length - 1 - len(tokens[i]) - 1) + [eos]
+        tokens[i] = [bos] + tokens[i] + [pad] * \
+            (max_length - 1 - len(tokens[i]) - 1) + [eos]
         if no_boseos_middle:
-            weights[i] = [1.0] + weights[i] + [1.0] * (
-                max_length - 1 - len(weights[i]))
+            weights[i] = [1.0] + weights[i] + [1.0] * \
+                (max_length - 1 - len(weights[i]))
         else:
             w = []
             if len(weights[i]) == 0:
@@ -199,8 +199,12 @@ def pad_tokens_and_weights(tokens,
             else:
                 for j in range(max_embeddings_multiples):
                     w.append(1.0)  # weight for starting token in this chunk
-                    w += weights[i][j * (chunk_length - 2):min(
-                        len(weights[i]), (j + 1) * (chunk_length - 2))]
+                    w += weights[i][j *
+                                    (chunk_length -
+                                     2): min(len(weights[i]), (j +
+                                                               1) *
+                                             (chunk_length -
+                                              2))]
                     w.append(1.0)  # weight for ending token in this chunk
                 w += [1.0] * (weights_length - len(w))
             weights[i] = w[:]
@@ -223,8 +227,13 @@ def get_unweighted_text_embeddings(
         text_embeddings = []
         for i in range(max_embeddings_multiples):
             # extract the i-th chunk
-            text_input_chunk = text_input[:, i * (chunk_length - 2):(i + 1)
-                                          * (chunk_length - 2) + 2].clone()
+            text_input_chunk = text_input[:, i *
+                                          (chunk_length -
+                                           2): (i +
+                                                1) *
+                                          (chunk_length -
+                                              2) +
+                                          2].clone()
 
             # cover the head and the tail by the starting and the ending tokens
             text_input_chunk[:, 0] = text_input[0, 0]
@@ -283,8 +292,8 @@ def get_weighted_text_embeddings(
         skip_weighting (`bool`, *optional*, defaults to `False`):
             Skip the weighting. When the parsing is skipped, it is forced True.
     """
-    max_length = (pipe.tokenizer.model_max_length
-                  - 2) * max_embeddings_multiples + 2
+    max_length = (pipe.tokenizer.model_max_length - 2) * \
+        max_embeddings_multiples + 2
     if isinstance(prompt, str):
         prompt = [prompt]
 
@@ -297,39 +306,35 @@ def get_weighted_text_embeddings(
             uncond_tokens, uncond_weights = get_prompts_with_weights(
                 pipe, uncond_prompt, max_length - 2)
     else:
-        prompt_tokens = [
-            token[1:-1] for token in pipe.tokenizer(
-                prompt, max_length=max_length, truncation=True).input_ids
-        ]
+        prompt_tokens = [token[1:-1] for token in pipe.tokenizer(
+            prompt, max_length=max_length, truncation=True).input_ids]
         prompt_weights = [[1.0] * len(token) for token in prompt_tokens]
         if uncond_prompt is not None:
             if isinstance(uncond_prompt, str):
                 uncond_prompt = [uncond_prompt]
-            uncond_tokens = [
-                token[1:-1] for token in pipe.tokenizer(
-                    uncond_prompt, max_length=max_length,
-                    truncation=True).input_ids
-            ]
+            uncond_tokens = [token[1:-1] for token in pipe.tokenizer(
+                uncond_prompt, max_length=max_length, truncation=True).input_ids]
             uncond_weights = [[1.0] * len(token) for token in uncond_tokens]
 
-    # round up the longest length of tokens to a multiple of (model_max_length - 2)
+    # round up the longest length of tokens to a multiple of (model_max_length
+    # - 2)
     max_length = max([len(token) for token in prompt_tokens])
     if uncond_prompt is not None:
-        max_length = max(max_length,
-                         max([len(token) for token in uncond_tokens]))
+        max_length = max(max_length, max(
+            [len(token) for token in uncond_tokens]))
 
     max_embeddings_multiples = min(
         max_embeddings_multiples,
         (max_length - 1) // (pipe.tokenizer.model_max_length - 2) + 1,
     )
     max_embeddings_multiples = max(1, max_embeddings_multiples)
-    max_length = (pipe.tokenizer.model_max_length
-                  - 2) * max_embeddings_multiples + 2
+    max_length = (pipe.tokenizer.model_max_length - 2) * \
+        max_embeddings_multiples + 2
 
     # pad the length of tokens and weights
     bos = pipe.tokenizer.bos_token_id
     eos = pipe.tokenizer.eos_token_id
-    pad = getattr(pipe.tokenizer, 'pad_token_id', eos)
+    pad = getattr(pipe.tokenizer, "pad_token_id", eos)
     prompt_tokens, prompt_weights = pad_tokens_and_weights(
         prompt_tokens,
         prompt_weights,
@@ -341,7 +346,9 @@ def get_weighted_text_embeddings(
         chunk_length=pipe.tokenizer.model_max_length,
     )
     prompt_tokens = torch.tensor(
-        prompt_tokens, dtype=torch.long, device=pipe.device)
+        prompt_tokens,
+        dtype=torch.long,
+        device=pipe.device)
     if uncond_prompt is not None:
         uncond_tokens, uncond_weights = pad_tokens_and_weights(
             uncond_tokens,
@@ -354,7 +361,9 @@ def get_weighted_text_embeddings(
             chunk_length=pipe.tokenizer.model_max_length,
         )
         uncond_tokens = torch.tensor(
-            uncond_tokens, dtype=torch.long, device=pipe.device)
+            uncond_tokens,
+            dtype=torch.long,
+            device=pipe.device)
 
     # get the embeddings
     text_embeddings = get_unweighted_text_embeddings(
@@ -380,23 +389,24 @@ def get_weighted_text_embeddings(
             device=uncond_embeddings.device)
 
     # assign weights to the prompts and normalize in the sense of mean
-    # TODO: should we normalize by chunk or in a whole (current implementation)?
+    # TODO: should we normalize by chunk or in a whole (current
+    # implementation)?
     if (not skip_parsing) and (not skip_weighting):
-        previous_mean = text_embeddings.float().mean(axis=[-2, -1]).to(
-            text_embeddings.dtype)
+        previous_mean = text_embeddings.float().mean(
+            axis=[-2, -1]).to(text_embeddings.dtype)
         text_embeddings *= prompt_weights.unsqueeze(-1)
-        current_mean = text_embeddings.float().mean(axis=[-2, -1]).to(
-            text_embeddings.dtype)
-        text_embeddings *= (previous_mean
-                            / current_mean).unsqueeze(-1).unsqueeze(-1)
+        current_mean = text_embeddings.float().mean(
+            axis=[-2, -1]).to(text_embeddings.dtype)
+        text_embeddings *= (previous_mean /
+                            current_mean).unsqueeze(-1).unsqueeze(-1)
         if uncond_prompt is not None:
-            previous_mean = uncond_embeddings.float().mean(axis=[-2, -1]).to(
-                uncond_embeddings.dtype)
+            previous_mean = uncond_embeddings.float().mean(
+                axis=[-2, -1]).to(uncond_embeddings.dtype)
             uncond_embeddings *= uncond_weights.unsqueeze(-1)
-            current_mean = uncond_embeddings.float().mean(axis=[-2, -1]).to(
-                uncond_embeddings.dtype)
-            uncond_embeddings *= (previous_mean
-                                  / current_mean).unsqueeze(-1).unsqueeze(-1)
+            current_mean = uncond_embeddings.float().mean(
+                axis=[-2, -1]).to(uncond_embeddings.dtype)
+            uncond_embeddings *= (previous_mean /
+                                  current_mean).unsqueeze(-1).unsqueeze(-1)
 
     if uncond_prompt is not None:
         return text_embeddings, uncond_embeddings
@@ -416,7 +426,7 @@ def prepare_image(image):
             image = [image]
 
         if isinstance(image, list) and isinstance(image[0], PIL.Image.Image):
-            image = [np.array(i.convert('RGB'))[None, :] for i in image]
+            image = [np.array(i.convert("RGB"))[None, :] for i in image]
             image = np.concatenate(image, axis=0)
         elif isinstance(image, list) and isinstance(image[0], np.ndarray):
             image = np.concatenate([i[None, :] for i in image], axis=0)
@@ -463,7 +473,8 @@ class StableDiffusionControlNetImg2ImgPanoPipeline(
         feature_extractor ([`CLIPImageProcessor`]):
             Model that extracts features from generated images to be used as inputs for the `safety_checker`.
     """
-    _optional_components = ['safety_checker', 'feature_extractor']
+
+    _optional_components = ["safety_checker", "feature_extractor"]
 
     def check_inputs(
         self,
@@ -479,97 +490,98 @@ class StableDiffusionControlNetImg2ImgPanoPipeline(
     ):
         if height % 8 != 0 or width % 8 != 0:
             raise ValueError(
-                f'`height` and `width` have to be divisible by 8 but are {height} and {width}.'
-            )
+                f"`height` and `width` have to be divisible by 8 but are {height} and {width}.")
         condition_1 = callback_steps is not None
-        condition_2 = not isinstance(callback_steps,
-                                     int) or callback_steps <= 0
+        condition_2 = not isinstance(
+            callback_steps, int) or callback_steps <= 0
         if (callback_steps is None) or (condition_1 and condition_2):
             raise ValueError(
-                f'`callback_steps` has to be a positive integer but is {callback_steps} of type'
-                f' {type(callback_steps)}.')
+                f"`callback_steps` has to be a positive integer but is {callback_steps} of type"
+                f" {type(callback_steps)}.")
         if prompt is not None and prompt_embeds is not None:
             raise ValueError(
-                f'Cannot forward both `prompt`: {prompt} and `prompt_embeds`: {prompt_embeds}. Please make sure to'
-                ' only forward one of the two.')
+                f"Cannot forward both `prompt`: {prompt} and `prompt_embeds`: {prompt_embeds}. Please make sure to"
+                " only forward one of the two.")
         elif prompt is None and prompt_embeds is None:
             raise ValueError(
-                'Provide either `prompt` or `prompt_embeds`. Cannot leave both `prompt` and `prompt_embeds` undefined.'
+                "Provide either `prompt` or `prompt_embeds`. Cannot leave both `prompt` and `prompt_embeds` undefined."
             )
-        elif prompt is not None and (not isinstance(prompt, str)
-                                     and not isinstance(prompt, list)):
+        elif prompt is not None and (not isinstance(prompt, str) and not isinstance(prompt, list)):
             raise ValueError(
-                f'`prompt` has to be of type `str` or `list` but is {type(prompt)}'
-            )
+                f"`prompt` has to be of type `str` or `list` but is {type(prompt)}")
         if negative_prompt is not None and negative_prompt_embeds is not None:
             raise ValueError(
-                f'Cannot forward both `negative_prompt`: {negative_prompt} and `negative_prompt_embeds`:'
-                f' {negative_prompt_embeds}. Please make sure to only forward one of the two.'
-            )
+                f"Cannot forward both `negative_prompt`: {negative_prompt} and `negative_prompt_embeds`:"
+                f" {negative_prompt_embeds}. Please make sure to only forward one of the two.")
         if prompt_embeds is not None and negative_prompt_embeds is not None:
             if prompt_embeds.shape != negative_prompt_embeds.shape:
                 raise ValueError(
-                    '`prompt_embeds` and `negative_prompt_embeds` must have the same shape when passed directly, but'
-                    f' got: `prompt_embeds` {prompt_embeds.shape} != `negative_prompt_embeds`'
-                    f' {negative_prompt_embeds.shape}.')
+                    "`prompt_embeds` and `negative_prompt_embeds` must have the same shape when passed directly, but"
+                    f" got: `prompt_embeds` {prompt_embeds.shape} != `negative_prompt_embeds`"
+                    f" {negative_prompt_embeds.shape}.")
         # `prompt` needs more sophisticated handling when there are multiple
         # conditionings.
         if isinstance(self.controlnet, MultiControlNetModel):
             if isinstance(prompt, list):
                 logger.warning(
-                    f'You have {len(self.controlnet.nets)} ControlNets and you have passed {len(prompt)}'
-                    ' prompts. The conditionings will be fixed across the prompts.'
-                )
+                    f"You have {len(self.controlnet.nets)} ControlNets and you have passed {len(prompt)}"
+                    " prompts. The conditionings will be fixed across the prompts.")
         # Check `image`
-        is_compiled = hasattr(
-            F, 'scaled_dot_product_attention') and isinstance(
-                self.controlnet, torch._dynamo.eval_frame.OptimizedModule)
-        if (isinstance(self.controlnet, ControlNetModel) or is_compiled
-                and isinstance(self.controlnet._orig_mod, ControlNetModel)):
+        is_compiled = hasattr(F, "scaled_dot_product_attention") and isinstance(
+            self.controlnet, torch._dynamo.eval_frame.OptimizedModule)
+        if (
+            isinstance(self.controlnet, ControlNetModel)
+            or is_compiled
+            and isinstance(self.controlnet._orig_mod, ControlNetModel)
+        ):
             self.check_image(image, prompt, prompt_embeds)
-        elif (isinstance(self.controlnet, MultiControlNetModel) or is_compiled
-              and isinstance(self.controlnet._orig_mod, MultiControlNetModel)):
+        elif (
+            isinstance(self.controlnet, MultiControlNetModel)
+            or is_compiled
+            and isinstance(self.controlnet._orig_mod, MultiControlNetModel)
+        ):
             if not isinstance(image, list):
                 raise TypeError(
-                    'For multiple controlnets: `image` must be type `list`')
+                    "For multiple controlnets: `image` must be type `list`")
             # When `image` is a nested list:
             # (e.g. [[canny_image_1, pose_image_1], [canny_image_2, pose_image_2]])
             elif any(isinstance(i, list) for i in image):
                 raise ValueError(
-                    'A single batch of multiple conditionings are supported at the moment.'
-                )
+                    "A single batch of multiple conditionings are supported at the moment.")
             elif len(image) != len(self.controlnet.nets):
                 raise ValueError(
-                    'For multiple controlnets: `image` must have the same length as the number of controlnets.'
+                    "For multiple controlnets: `image` must have the same length as the number of controlnets."
                 )
             for image_ in image:
                 self.check_image(image_, prompt, prompt_embeds)
         else:
             assert False
         # Check `controlnet_conditioning_scale`
-        if (isinstance(self.controlnet, ControlNetModel) or is_compiled
-                and isinstance(self.controlnet._orig_mod, ControlNetModel)):
+        if (
+            isinstance(self.controlnet, ControlNetModel)
+            or is_compiled
+            and isinstance(self.controlnet._orig_mod, ControlNetModel)
+        ):
             if not isinstance(controlnet_conditioning_scale, float):
                 raise TypeError(
-                    'For single controlnet: `controlnet_conditioning_scale` must be type `float`.'
-                )
-        elif (isinstance(self.controlnet, MultiControlNetModel) or is_compiled
-              and isinstance(self.controlnet._orig_mod, MultiControlNetModel)):
+                    "For single controlnet: `controlnet_conditioning_scale` must be type `float`.")
+        elif (
+            isinstance(self.controlnet, MultiControlNetModel)
+            or is_compiled
+            and isinstance(self.controlnet._orig_mod, MultiControlNetModel)
+        ):
             if isinstance(controlnet_conditioning_scale, list):
-                if any(
-                        isinstance(i, list)
-                        for i in controlnet_conditioning_scale):
+                if any(isinstance(i, list)
+                       for i in controlnet_conditioning_scale):
                     raise ValueError(
-                        'A single batch of multiple conditionings are supported at the moment.'
-                    )
-            elif isinstance(
-                    controlnet_conditioning_scale,
-                    list) and len(controlnet_conditioning_scale) != len(
-                        self.controlnet.nets):
+                        "A single batch of multiple conditionings are supported at the moment.")
+            elif isinstance(controlnet_conditioning_scale, list) and len(controlnet_conditioning_scale) != len(
+                self.controlnet.nets
+            ):
                 raise ValueError(
-                    'For multiple controlnets: When `controlnet_conditioning_scale` '
-                    'is specified as `list`, it must have'
-                    ' the same length as the number of controlnets')
+                    "For multiple controlnets: When `controlnet_conditioning_scale` "
+                    "is specified as `list`, it must have"
+                    " the same length as the number of controlnets")
         else:
             assert False
 
@@ -635,14 +647,14 @@ class StableDiffusionControlNetImg2ImgPanoPipeline(
 
         if negative_prompt_embeds is None:
             if negative_prompt is None:
-                negative_prompt = [''] * batch_size
+                negative_prompt = [""] * batch_size
             elif isinstance(negative_prompt, str):
                 negative_prompt = [negative_prompt] * batch_size
             if batch_size != len(negative_prompt):
                 raise ValueError(
-                    f'`negative_prompt`: {negative_prompt} has batch size {len(negative_prompt)}, but `prompt`:'
-                    f' {prompt} has batch size {batch_size}. Please make sure that passed `negative_prompt` matches'
-                    ' the batch size of `prompt`.')
+                    f"`negative_prompt`: {negative_prompt} has batch size {len(negative_prompt)}, but `prompt`:"
+                    f" {prompt} has batch size {batch_size}. Please make sure that passed `negative_prompt` matches"
+                    " the batch size of `prompt`.")
         if prompt_embeds is None or negative_prompt_embeds is None:
             if isinstance(self, TextualInversionLoaderMixin):
                 prompt = self.maybe_convert_prompt(prompt, self.tokenizer)
@@ -653,8 +665,7 @@ class StableDiffusionControlNetImg2ImgPanoPipeline(
             prompt_embeds1, negative_prompt_embeds1 = get_weighted_text_embeddings(
                 pipe=self,
                 prompt=prompt,
-                uncond_prompt=negative_prompt
-                if do_classifier_free_guidance else None,
+                uncond_prompt=negative_prompt if do_classifier_free_guidance else None,
                 max_embeddings_multiples=max_embeddings_multiples,
             )
             if prompt_embeds is None:
@@ -663,10 +674,11 @@ class StableDiffusionControlNetImg2ImgPanoPipeline(
                 negative_prompt_embeds = negative_prompt_embeds1
 
         bs_embed, seq_len, _ = prompt_embeds.shape
-        # duplicate text embeddings for each generation per prompt, using mps friendly method
+        # duplicate text embeddings for each generation per prompt, using mps
+        # friendly method
         prompt_embeds = prompt_embeds.repeat(1, num_images_per_prompt, 1)
-        prompt_embeds = prompt_embeds.view(bs_embed * num_images_per_prompt,
-                                           seq_len, -1)
+        prompt_embeds = prompt_embeds.view(
+            bs_embed * num_images_per_prompt, seq_len, -1)
 
         if do_classifier_free_guidance:
             bs_embed, seq_len, _ = negative_prompt_embeds.shape
@@ -678,11 +690,20 @@ class StableDiffusionControlNetImg2ImgPanoPipeline(
 
         return prompt_embeds
 
-    def denoise_latents(self, latents, t, prompt_embeds, control_image,
-                        controlnet_conditioning_scale, guess_mode,
-                        cross_attention_kwargs, do_classifier_free_guidance,
-                        guidance_scale, extra_step_kwargs,
-                        views_scheduler_status):
+    def denoise_latents(
+        self,
+        latents,
+        t,
+        prompt_embeds,
+        control_image,
+        controlnet_conditioning_scale,
+        guess_mode,
+        cross_attention_kwargs,
+        do_classifier_free_guidance,
+        guidance_scale,
+        extra_step_kwargs,
+        views_scheduler_status,
+    ):
         # expand the latents if we are doing classifier free guidance
         latent_model_input = torch.cat(
             [latents] * 2) if do_classifier_free_guidance else latents
@@ -710,10 +731,8 @@ class StableDiffusionControlNetImg2ImgPanoPipeline(
             # Infered ControlNet only for the conditional batch.
             # To apply the output of ControlNet to both the unconditional and conditional batches,
             # add 0 to the unconditional batch to keep it unchanged.
-            down_block_res_samples = [
-                torch.cat([torch.zeros_like(d), d])
-                for d in down_block_res_samples
-            ]
+            down_block_res_samples = [torch.cat(
+                [torch.zeros_like(d), d]) for d in down_block_res_samples]
             mid_block_res_sample = torch.cat(
                 [torch.zeros_like(mid_block_res_sample), mid_block_res_sample])
         # predict the noise residual
@@ -729,46 +748,52 @@ class StableDiffusionControlNetImg2ImgPanoPipeline(
         # perform guidance
         if do_classifier_free_guidance:
             noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
-            noise_pred = noise_pred_uncond + guidance_scale * (
-                noise_pred_text - noise_pred_uncond)
+            noise_pred = noise_pred_uncond + guidance_scale * \
+                (noise_pred_text - noise_pred_uncond)
         # compute the previous noisy sample x_t -> x_t-1
         latents = self.scheduler.step(
-            noise_pred, t, latents, **extra_step_kwargs, return_dict=False)[0]
+            noise_pred,
+            t,
+            latents,
+            **extra_step_kwargs,
+            return_dict=False)[0]
         return latents
 
     def blend_v(self, a, b, blend_extent):
         blend_extent = min(a.shape[2], b.shape[2], blend_extent)
         for y in range(blend_extent):
-            b[:, :,
-              y, :] = a[:, :, -blend_extent
-                        + y, :] * (1 - y / blend_extent) + b[:, :, y, :] * (
-                            y / blend_extent)
+            b[:, :, y, :] = a[:, :, -blend_extent + y, :] * \
+                (1 - y / blend_extent) + b[:, :, y, :] * (y / blend_extent)
         return b
 
     def blend_h(self, a, b, blend_extent):
         blend_extent = min(a.shape[3], b.shape[3], blend_extent)
         for x in range(blend_extent):
-            b[:, :, :, x] = a[:, :, :, -blend_extent
-                              + x] * (1 - x / blend_extent) + b[:, :, :, x] * (
-                                  x / blend_extent)
+            b[:, :, :, x] = a[:, :, :, -blend_extent + x] * \
+                (1 - x / blend_extent) + b[:, :, :, x] * (x / blend_extent)
         return b
 
-    def get_blocks(self, latents, control_image, tile_latent_min_size,
-                   overlap_size):
+    def get_blocks(
+            self,
+            latents,
+            control_image,
+            tile_latent_min_size,
+            overlap_size):
         rows_latents = []
         rows_control_images = []
         for i in range(0, latents.shape[2] - overlap_size, overlap_size):
             row_latents = []
             row_control_images = []
             for j in range(0, latents.shape[3] - overlap_size, overlap_size):
-                latents_input = latents[:, :, i:i + tile_latent_min_size,
-                                        j:j + tile_latent_min_size]
+                latents_input = latents[:, :, i: i +
+                                        tile_latent_min_size, j: j +
+                                        tile_latent_min_size]
                 c_start_i = self.vae_scale_factor * i
                 c_end_i = self.vae_scale_factor * (i + tile_latent_min_size)
                 c_start_j = self.vae_scale_factor * j
                 c_end_j = self.vae_scale_factor * (j + tile_latent_min_size)
-                control_image_input = control_image[:, :, c_start_i:c_end_i,
-                                                    c_start_j:c_end_j]
+                control_image_input = control_image[:, :,
+                                                    c_start_i:c_end_i, c_start_j:c_end_j]
                 row_latents.append(latents_input)
                 row_control_images.append(control_image_input)
             rows_latents.append(row_latents)
@@ -780,11 +805,8 @@ class StableDiffusionControlNetImg2ImgPanoPipeline(
     def __call__(
         self,
         prompt: Union[str, List[str]] = None,
-        image: Union[torch.FloatTensor, PIL.Image.Image,
-                     List[torch.FloatTensor], List[PIL.Image.Image]] = None,
-        control_image: Union[torch.FloatTensor, PIL.Image.Image,
-                             List[torch.FloatTensor],
-                             List[PIL.Image.Image]] = None,
+        image: Union[torch.FloatTensor, PIL.Image.Image, List[torch.FloatTensor], List[PIL.Image.Image]] = None,
+        control_image: Union[torch.FloatTensor, PIL.Image.Image, List[torch.FloatTensor], List[PIL.Image.Image]] = None,
         height: Optional[int] = None,
         width: Optional[int] = None,
         strength: float = 0.8,
@@ -793,15 +815,13 @@ class StableDiffusionControlNetImg2ImgPanoPipeline(
         negative_prompt: Optional[Union[str, List[str]]] = None,
         num_images_per_prompt: Optional[int] = 1,
         eta: float = 0.0,
-        generator: Optional[Union[torch.Generator,
-                                  List[torch.Generator]]] = None,
+        generator: Optional[Union[torch.Generator, List[torch.Generator]]] = None,
         latents: Optional[torch.FloatTensor] = None,
         prompt_embeds: Optional[torch.FloatTensor] = None,
         negative_prompt_embeds: Optional[torch.FloatTensor] = None,
-        output_type: Optional[str] = 'pil',
+        output_type: Optional[str] = "pil",
         return_dict: bool = True,
-        callback: Optional[Callable[[int, int, torch.FloatTensor],
-                                    None]] = None,
+        callback: Optional[Callable[[int, int, torch.FloatTensor], None]] = None,
         callback_steps: int = 1,
         cross_attention_kwargs: Optional[Dict[str, Any]] = None,
         controlnet_conditioning_scale: Union[float, List[float]] = 0.8,
@@ -898,9 +918,7 @@ class StableDiffusionControlNetImg2ImgPanoPipeline(
         """
 
         def tiled_decode(
-            self,
-            z: torch.FloatTensor,
-            return_dict: bool = True
+            self, z: torch.FloatTensor, return_dict: bool = True
         ) -> Union[DecoderOutput, torch.FloatTensor]:
             r"""Decode a batch of images using a tiled decoder.
 
@@ -915,20 +933,22 @@ class StableDiffusionControlNetImg2ImgPanoPipeline(
                     Whether or not to return a [`DecoderOutput`] instead of a plain tuple.
             """
             _tile_overlap_factor = 1 - self.tile_overlap_factor
-            overlap_size = int(self.tile_latent_min_size
-                               * _tile_overlap_factor)
-            blend_extent = int(self.tile_sample_min_size
-                               * self.tile_overlap_factor)
+            overlap_size = int(
+                self.tile_latent_min_size *
+                _tile_overlap_factor)
+            blend_extent = int(
+                self.tile_sample_min_size *
+                self.tile_overlap_factor)
             row_limit = self.tile_sample_min_size - blend_extent
             w = z.shape[3]
-            z = torch.cat([z, z[:, :, :, :w // 4]], dim=-1)
+            z = torch.cat([z, z[:, :, :, : w // 4]], dim=-1)
             # Split z into overlapping 64x64 tiles and decode them separately.
             # The tiles have an overlap to avoid seams between tiles.
 
             rows = []
             for i in range(0, z.shape[2], overlap_size):
                 row = []
-                tile = z[:, :, i:i + self.tile_latent_min_size, :]
+                tile = z[:, :, i: i + self.tile_latent_min_size, :]
                 tile = self.post_quant_conv(tile)
                 decoded = self.decoder(tile)
                 vae_scale_factor = decoded.shape[-1] // tile.shape[-1]
@@ -939,7 +959,8 @@ class StableDiffusionControlNetImg2ImgPanoPipeline(
                 result_row = []
                 for j, tile in enumerate(row):
                     # blend the above tile and the left tile
-                    # to the current tile and add the current tile to the result row
+                    # to the current tile and add the current tile to the
+                    # result row
                     if i > 0:
                         tile = self.blend_v(rows[i - 1][j], tile, blend_extent)
                     if j > 0:
@@ -947,13 +968,15 @@ class StableDiffusionControlNetImg2ImgPanoPipeline(
                     result_row.append(
                         self.blend_h(
                             tile[:, :, :row_limit, w * vae_scale_factor:],
-                            tile[:, :, :row_limit, :w * vae_scale_factor],
-                            tile.shape[-1] - w * vae_scale_factor))
+                            tile[:, :, :row_limit, : w * vae_scale_factor],
+                            tile.shape[-1] - w * vae_scale_factor,
+                        )
+                    )
                 result_rows.append(torch.cat(result_row, dim=3))
 
             dec = torch.cat(result_rows, dim=2)
             if not return_dict:
-                return (dec, )
+                return (dec,)
 
             return DecoderOutput(sample=dec)
 
@@ -992,15 +1015,19 @@ class StableDiffusionControlNetImg2ImgPanoPipeline(
         controlnet = self.controlnet._orig_mod if is_compiled_module(
             self.controlnet) else self.controlnet
 
-        if isinstance(controlnet, MultiControlNetModel) and isinstance(
-                controlnet_conditioning_scale, float):
-            controlnet_conditioning_scale = [controlnet_conditioning_scale
-                                             ] * len(controlnet.nets)
+        if isinstance(
+                controlnet,
+                MultiControlNetModel) and isinstance(
+                controlnet_conditioning_scale,
+                float):
+            controlnet_conditioning_scale = [
+                controlnet_conditioning_scale] * len(controlnet.nets)
 
         global_pool_conditions = (
-            controlnet.config.global_pool_conditions if isinstance(
-                controlnet, ControlNetModel) else
-            controlnet.nets[0].config.global_pool_conditions)
+            controlnet.config.global_pool_conditions
+            if isinstance(controlnet, ControlNetModel)
+            else controlnet.nets[0].config.global_pool_conditions
+        )
         guess_mode = guess_mode or global_pool_conditions
 
         # 3. Encode input prompt
@@ -1055,8 +1082,8 @@ class StableDiffusionControlNetImg2ImgPanoPipeline(
         self.scheduler.set_timesteps(num_inference_steps, device=device)
         timesteps, num_inference_steps = self.get_timesteps(
             num_inference_steps, strength, device)
-        latent_timestep = timesteps[:1].repeat(batch_size
-                                               * num_images_per_prompt)
+        latent_timestep = timesteps[:1].repeat(
+            batch_size * num_images_per_prompt)
 
         # 6. Prepare latent variables
         latents = self.prepare_latents(
@@ -1069,7 +1096,8 @@ class StableDiffusionControlNetImg2ImgPanoPipeline(
             generator,
         )
 
-        # 7. Prepare extra step kwargs. TODO: Logic should ideally just be moved out of the pipeline
+        # 7. Prepare extra step kwargs. TODO: Logic should ideally just be
+        # moved out of the pipeline
         extra_step_kwargs = self.prepare_extra_step_kwargs(generator, eta)
 
         views_scheduler_status = [copy.deepcopy(self.scheduler.__dict__)]
@@ -1082,18 +1110,19 @@ class StableDiffusionControlNetImg2ImgPanoPipeline(
         row_limit = tile_latent_min_size - blend_extent
         w = latents.shape[3]
         latents = torch.cat([latents, latents[:, :, :, :overlap_size]], dim=-1)
-        control_image_extend = control_image[:, :, :, :overlap_size
-                                             * self.vae_scale_factor]
-        control_image = torch.cat([control_image, control_image_extend],
-                                  dim=-1)
+        control_image_extend = control_image[:, :,
+                                             :, : overlap_size * self.vae_scale_factor]
+        control_image = torch.cat(
+            [control_image, control_image_extend], dim=-1)
 
         # 8. Denoising loop
-        num_warmup_steps = len(
-            timesteps) - num_inference_steps * self.scheduler.order
+        num_warmup_steps = len(timesteps) - \
+            num_inference_steps * self.scheduler.order
         with self.progress_bar(total=num_inference_steps) as progress_bar:
             for i, t in enumerate(timesteps):
                 latents_input, control_image_input = self.get_blocks(
-                    latents, control_image, tile_latent_min_size, overlap_size)
+                    latents, control_image, tile_latent_min_size, overlap_size
+                )
                 rows = []
                 for latents_input_, control_image_input_ in zip(
                         latents_input, control_image_input):
@@ -1102,36 +1131,52 @@ class StableDiffusionControlNetImg2ImgPanoPipeline(
                     latents_input_ = torch.cat(
                         latents_input_[:num_block], dim=0)
                     # get batched prompt_embeds
-                    prompt_embeds_ = torch.cat(
-                        [prompt_embeds.chunk(2)[0]] * num_block
-                        + [prompt_embeds.chunk(2)[1]] * num_block,
-                        dim=0)
+                    prompt_embeds_ = torch.cat([prompt_embeds.chunk(
+                        2)[0]] * num_block + [prompt_embeds.chunk(2)[1]] * num_block, dim=0)
                     # get batched control_image_input
                     control_image_input_ = torch.cat(
                         [
-                            x[0, :, :, ][None, :, :, :]
+                            x[
+                                0,
+                                :,
+                                :,
+                            ][None, :, :, :]
                             for x in control_image_input_[:num_block]
-                        ] + [
-                            x[1, :, :, ][None, :, :, :]
+                        ]
+                        + [
+                            x[
+                                1,
+                                :,
+                                :,
+                            ][None, :, :, :]
                             for x in control_image_input_[:num_block]
                         ],
-                        dim=0)
+                        dim=0,
+                    )
                     latents_output = self.denoise_latents(
-                        latents_input_, t, prompt_embeds_,
-                        control_image_input_, controlnet_conditioning_scale,
-                        guess_mode, cross_attention_kwargs,
-                        do_classifier_free_guidance, guidance_scale,
-                        extra_step_kwargs, views_scheduler_status)
+                        latents_input_,
+                        t,
+                        prompt_embeds_,
+                        control_image_input_,
+                        controlnet_conditioning_scale,
+                        guess_mode,
+                        cross_attention_kwargs,
+                        do_classifier_free_guidance,
+                        guidance_scale,
+                        extra_step_kwargs,
+                        views_scheduler_status,
+                    )
                     rows.append(list(latents_output.chunk(num_block)))
                 result_rows = []
                 for i, row in enumerate(rows):
                     result_row = []
                     for j, tile in enumerate(row):
                         # blend the above tile and the left tile
-                        # to the current tile and add the current tile to the result row
+                        # to the current tile and add the current tile to the
+                        # result row
                         if i > 0:
-                            tile = self.blend_v(rows[i - 1][j], tile,
-                                                blend_extent)
+                            tile = self.blend_v(
+                                rows[i - 1][j], tile, blend_extent)
                         if j > 0:
                             tile = self.blend_h(row[j - 1], tile, blend_extent)
                         if j == 0:
@@ -1152,8 +1197,8 @@ class StableDiffusionControlNetImg2ImgPanoPipeline(
 
                 # call the callback, if provided
                 condition_i = i == len(timesteps) - 1
-                condition_warm = (i + 1) > num_warmup_steps and (
-                    i + 1) % self.scheduler.order == 0
+                condition_warm = (
+                    i + 1) > num_warmup_steps and (i + 1) % self.scheduler.order == 0
                 if condition_i or condition_warm:
                     progress_bar.update()
                     if callback is not None and i % callback_steps == 0:
@@ -1164,14 +1209,15 @@ class StableDiffusionControlNetImg2ImgPanoPipeline(
         # manually for max memory savings
         if hasattr(
                 self,
-                'final_offload_hook') and self.final_offload_hook is not None:
-            self.unet.to('cpu')
-            self.controlnet.to('cpu')
+                "final_offload_hook") and self.final_offload_hook is not None:
+            self.unet.to("cpu")
+            self.controlnet.to("cpu")
             torch.cuda.empty_cache()
 
-        if not output_type == 'latent':
+        if not output_type == "latent":
             image = self.vae.decode(
-                latents / self.vae.config.scaling_factor, return_dict=False)[0]
+                latents / self.vae.config.scaling_factor,
+                return_dict=False)[0]
             image, has_nsfw_concept = self.run_safety_checker(
                 image, device, prompt_embeds.dtype)
         else:
@@ -1189,7 +1235,7 @@ class StableDiffusionControlNetImg2ImgPanoPipeline(
         # Offload last model to CPU
         if hasattr(
                 self,
-                'final_offload_hook') and self.final_offload_hook is not None:
+                "final_offload_hook") and self.final_offload_hook is not None:
             self.final_offload_hook.offload()
 
         if not return_dict:

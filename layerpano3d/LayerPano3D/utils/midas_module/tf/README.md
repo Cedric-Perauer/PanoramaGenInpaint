@@ -11,11 +11,11 @@
 
 ### Run inference on TensorFlow-model by using TensorFlow
 
-1) Download the model weights [model-f6b98070.pb](https://github.com/isl-org/MiDaS/releases/download/v2_1/model-f6b98070.pb) 
+1) Download the model weights [model-f6b98070.pb](https://github.com/isl-org/MiDaS/releases/download/v2_1/model-f6b98070.pb)
 and [model-small.pb](https://github.com/isl-org/MiDaS/releases/download/v2_1/model-small.pb) and place the
 file in the `/tf/` folder.
 
-2) Set up dependencies: 
+2) Set up dependencies:
 
 ```shell
 # install OpenCV
@@ -47,11 +47,11 @@ pip install -I grpcio tensorflow==2.3.0 tensorflow-addons==0.11.2 numpy==1.18.0
 
 ### Run inference on ONNX-model by using ONNX-Runtime
 
-1) Download the model weights [model-f6b98070.onnx](https://github.com/isl-org/MiDaS/releases/download/v2_1/model-f6b98070.onnx) 
+1) Download the model weights [model-f6b98070.onnx](https://github.com/isl-org/MiDaS/releases/download/v2_1/model-f6b98070.onnx)
 and [model-small.onnx](https://github.com/isl-org/MiDaS/releases/download/v2_1/model-small.onnx) and place the
 file in the `/tf/` folder.
 
-2) Set up dependencies: 
+2) Set up dependencies:
 
 ```shell
 # install OpenCV
@@ -90,7 +90,7 @@ pip install onnxruntime==1.5.2
 1) Download the model weights [model-f6b98070.pt](https://github.com/isl-org/MiDaS/releases/download/v2_1/model-f6b98070.pt) and place the
 file in the root folder.
 
-2) Set up dependencies: 
+2) Set up dependencies:
 
 ```shell
 # install OpenCV
@@ -108,8 +108,8 @@ pip install onnx==1.7.0
 
 # install ONNX-TensorFlow
 git clone https://github.com/onnx/onnx-tensorflow.git
-cd onnx-tensorflow 
-git checkout 095b51b88e35c4001d70f15f80f31014b592b81e 
+cd onnx-tensorflow
+git checkout 095b51b88e35c4001d70f15f80f31014b592b81e
 pip install -e .
 ```
 
@@ -127,7 +127,7 @@ pip install -e .
 ### Requirements
 
    The code was tested with Python 3.6.9, PyTorch 1.5.1, TensorFlow 2.2.0, TensorFlow-addons 0.8.3, ONNX 1.7.0, ONNX-TensorFlow (GitHub-master-17.07.2020) and OpenCV 4.3.0.
- 
+
 ### Citation
 
 Please cite our paper if you use this code or any of the models:
@@ -140,8 +140,6 @@ Please cite our paper if you use this code or any of the models:
 }
 ```
 
-### License 
+### License
 
-MIT License 
-
-   
+MIT License

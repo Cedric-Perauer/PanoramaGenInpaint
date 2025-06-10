@@ -2,7 +2,7 @@ function generatecrops(dataset, blsize, stride, subsetname,counter_offset)
 
 root_dir = '';
 
-imgdir = sprintf("%s/%s/rgb",root_dir,dataset); 
+imgdir = sprintf("%s/%s/rgb",root_dir,dataset);
 est_lq_dir = sprintf("%s/%s/whole_low_est",root_dir,dataset);
 est_hq_dir = sprintf("%s/%s/whole_high_est",root_dir,dataset);
 
@@ -34,10 +34,10 @@ for i=1+i_start:numel(imglist)+i_end
     samplename = erase(imglist(i).name,'.png');
 
     img = im2uint16(imread(sprintf('%s/%s.png',imgdir,samplename)));
-    
+
     est_lq = im2uint16(imread(sprintf('%s/%s.png',est_lq_dir,samplename)));
     est_hq = im2uint16(imread(sprintf('%s/%s.png',est_hq_dir,samplename)));
-    
+
     counter1 = counter_offset;
     for k = blsize:stride:size(img,2)-blsize
         counter2 = counter_offset;
@@ -47,28 +47,26 @@ for i=1+i_start:numel(imglist)+i_end
             sample_img = img(cropbounds(1):cropbounds(3),cropbounds(2):cropbounds(4),:);
             sample_hq_est = est_hq(cropbounds(1):cropbounds(3),cropbounds(2):cropbounds(4),:);
             sample_lq_est = est_lq(cropbounds(1):cropbounds(3),cropbounds(2):cropbounds(4),:);
-       
-            
+
+
             if size(sample_hq_est) == [2*blsize 2*blsize]
-                
+
                 sample_img = imresize(sample_img,[672,672]);
                 sample_hq_est = imresize(sample_hq_est,[672,672]);
                 sample_lq_est = imresize(sample_lq_est,[672,672]);
 
-                imwrite(sample_img,sprintf('%s/%s_&%d_%d&.png',img_result_dir,samplename,counter1,counter2)) 
-                imwrite(sample_hq_est,sprintf('%s/%s_&%d_%d&.png',gt_fake_result_dir,samplename,counter1,counter2)) 
+                imwrite(sample_img,sprintf('%s/%s_&%d_%d&.png',img_result_dir,samplename,counter1,counter2))
+                imwrite(sample_hq_est,sprintf('%s/%s_&%d_%d&.png',gt_fake_result_dir,samplename,counter1,counter2))
                 imwrite(sample_lq_est,sprintf('%s/%s_&%d_%d&.png',outer_result_dir,samplename,counter1,counter2))
                 fprintf('(%d/%d) %s - [%d-%d] \n',i,numel(imglist),samplename,counter1,counter2);
             else
-                fprintf('(%d/%d) %s - Size Issue: Not cropped! \n',i,numel(imglist),samplename)    
+                fprintf('(%d/%d) %s - Size Issue: Not cropped! \n',i,numel(imglist),samplename)
             end
             counter2 = counter2 + 1;
         end
         counter1 = counter1 + 1;
     end
-       
-end
 
 end
 
-
+end

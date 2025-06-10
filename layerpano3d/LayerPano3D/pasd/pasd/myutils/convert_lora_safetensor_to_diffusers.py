@@ -24,9 +24,16 @@ from diffusers import StableDiffusionPipeline
 import pdb
 from collections import defaultdict
 
-def convert(base_model_path, checkpoint_path, LORA_PREFIX_UNET="lora_unet", LORA_PREFIX_TEXT_ENCODER="lora_te", alpha=1.0):
+
+def convert(
+        base_model_path,
+        checkpoint_path,
+        LORA_PREFIX_UNET="lora_unet",
+        LORA_PREFIX_TEXT_ENCODER="lora_te",
+        alpha=1.0):
     # load base model
-    pipeline = StableDiffusionPipeline.from_pretrained(base_model_path, torch_dtype=torch.float32)
+    pipeline = StableDiffusionPipeline.from_pretrained(
+        base_model_path, torch_dtype=torch.float32)
 
     # load LoRA weight from .safetensors
     state_dict = load_file(checkpoint_path)
@@ -43,10 +50,12 @@ def convert(base_model_path, checkpoint_path, LORA_PREFIX_UNET="lora_unet", LORA
             continue
 
         if "text" in key:
-            layer_infos = key.split(".")[0].split(LORA_PREFIX_TEXT_ENCODER + "_")[-1].split("_")
+            layer_infos = key.split(".")[0].split(
+                LORA_PREFIX_TEXT_ENCODER + "_")[-1].split("_")
             curr_layer = pipeline.text_encoder
         else:
-            layer_infos = key.split(".")[0].split(LORA_PREFIX_UNET + "_")[-1].split("_")
+            layer_infos = key.split(".")[0].split(
+                LORA_PREFIX_UNET + "_")[-1].split("_")
             curr_layer = pipeline.unet
 
         # find the target layer
@@ -74,9 +83,12 @@ def convert(base_model_path, checkpoint_path, LORA_PREFIX_UNET="lora_unet", LORA
 
         # update weight
         if len(state_dict[pair_keys[0]].shape) == 4:
-            weight_up = state_dict[pair_keys[0]].squeeze(3).squeeze(2).to(torch.float32)
-            weight_down = state_dict[pair_keys[1]].squeeze(3).squeeze(2).to(torch.float32)
-            curr_layer.weight.data += alpha * torch.mm(weight_up, weight_down).unsqueeze(2).unsqueeze(3)
+            weight_up = state_dict[pair_keys[0]].squeeze(
+                3).squeeze(2).to(torch.float32)
+            weight_down = state_dict[pair_keys[1]].squeeze(
+                3).squeeze(2).to(torch.float32)
+            curr_layer.weight.data += alpha * \
+                torch.mm(weight_up, weight_down).unsqueeze(2).unsqueeze(3)
         else:
             weight_up = state_dict[pair_keys[0]].to(torch.float32)
             weight_down = state_dict[pair_keys[1]].to(torch.float32)
@@ -88,11 +100,24 @@ def convert(base_model_path, checkpoint_path, LORA_PREFIX_UNET="lora_unet", LORA
 
     return pipeline
 
-def convert_lora(unet, text_encoder, lora_path, LORA_PREFIX_UNET="lora_unet", LORA_PREFIX_TEXT_ENCODER="lora_te", multiplier=0.6, device='cuda'):
+
+def convert_lora(
+    unet,
+    text_encoder,
+    lora_path,
+    LORA_PREFIX_UNET="lora_unet",
+    LORA_PREFIX_TEXT_ENCODER="lora_te",
+    multiplier=0.6,
+    device="cuda",
+):
     # load base model
-    #pipeline.to(device)
+    # pipeline.to(device)
     # load LoRA weight from .safetensors
-    state_dict = load_file(lora_path, device=device) if isinstance(lora_path, str) else lora_path
+    state_dict = load_file(
+        lora_path,
+        device=device) if isinstance(
+        lora_path,
+        str) else lora_path
     visited = []
 
     # directly update weight in diffusers model
@@ -105,12 +130,14 @@ def convert_lora(unet, text_encoder, lora_path, LORA_PREFIX_UNET="lora_unet", LO
             continue
 
         if "text" in key:
-            layer_infos = key.split(".")[0].split(LORA_PREFIX_TEXT_ENCODER + "_")[-1].split("_")
-            #curr_layer = pipeline.text_encoder
+            layer_infos = key.split(".")[0].split(
+                LORA_PREFIX_TEXT_ENCODER + "_")[-1].split("_")
+            # curr_layer = pipeline.text_encoder
             curr_layer = text_encoder
         else:
-            layer_infos = key.split(".")[0].split(LORA_PREFIX_UNET + "_")[-1].split("_")
-            #curr_layer = pipeline.unet
+            layer_infos = key.split(".")[0].split(
+                LORA_PREFIX_UNET + "_")[-1].split("_")
+            # curr_layer = pipeline.unet
             curr_layer = unet
 
         # find the target layer
@@ -138,13 +165,17 @@ def convert_lora(unet, text_encoder, lora_path, LORA_PREFIX_UNET="lora_unet", LO
 
         # update weight
         if len(state_dict[pair_keys[0]].shape) == 4:
-            weight_up = state_dict[pair_keys[0]].squeeze(3).squeeze(2).to(torch.float32)
-            weight_down = state_dict[pair_keys[1]].squeeze(3).squeeze(2).to(torch.float32)
-            curr_layer.weight.data += multiplier * torch.mm(weight_up, weight_down).unsqueeze(2).unsqueeze(3)
+            weight_up = state_dict[pair_keys[0]].squeeze(
+                3).squeeze(2).to(torch.float32)
+            weight_down = state_dict[pair_keys[1]].squeeze(
+                3).squeeze(2).to(torch.float32)
+            curr_layer.weight.data += multiplier * \
+                torch.mm(weight_up, weight_down).unsqueeze(2).unsqueeze(3)
         else:
             weight_up = state_dict[pair_keys[0]].to(torch.float32)
             weight_down = state_dict[pair_keys[1]].to(torch.float32)
-            curr_layer.weight.data += multiplier * torch.mm(weight_up, weight_down)
+            curr_layer.weight.data += multiplier * \
+                torch.mm(weight_up, weight_down)
 
         # update visited list
         for item in pair_keys:
@@ -157,26 +188,47 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--base_model_path", default=None, type=str, required=True, help="Path to the base model in diffusers format."
-    )
+        "--base_model_path",
+        default=None,
+        type=str,
+        required=True,
+        help="Path to the base model in diffusers format.")
     parser.add_argument(
-        "--checkpoint_path", default=None, type=str, required=True, help="Path to the checkpoint to convert."
-    )
-    parser.add_argument("--dump_path", default=None, type=str, required=True, help="Path to the output model.")
+        "--checkpoint_path",
+        default=None,
+        type=str,
+        required=True,
+        help="Path to the checkpoint to convert.")
     parser.add_argument(
-        "--lora_prefix_unet", default="lora_unet", type=str, help="The prefix of UNet weight in safetensors"
-    )
+        "--dump_path",
+        default=None,
+        type=str,
+        required=True,
+        help="Path to the output model.")
+    parser.add_argument(
+        "--lora_prefix_unet",
+        default="lora_unet",
+        type=str,
+        help="The prefix of UNet weight in safetensors")
     parser.add_argument(
         "--lora_prefix_text_encoder",
         default="lora_te",
         type=str,
         help="The prefix of text encoder weight in safetensors",
     )
-    parser.add_argument("--alpha", default=0.75, type=float, help="The merging ratio in W = W0 + alpha * deltaW")
     parser.add_argument(
-        "--to_safetensors", action="store_true", help="Whether to store pipeline in safetensors format or not."
-    )
-    parser.add_argument("--device", type=str, help="Device to use (e.g. cpu, cuda:0, cuda:1, etc.)")
+        "--alpha",
+        default=0.75,
+        type=float,
+        help="The merging ratio in W = W0 + alpha * deltaW")
+    parser.add_argument(
+        "--to_safetensors",
+        action="store_true",
+        help="Whether to store pipeline in safetensors format or not.")
+    parser.add_argument(
+        "--device",
+        type=str,
+        help="Device to use (e.g. cpu, cuda:0, cuda:1, etc.)")
 
     args = parser.parse_args()
 
@@ -187,7 +239,14 @@ if __name__ == "__main__":
     lora_prefix_text_encoder = args.lora_prefix_text_encoder
     alpha = args.alpha
 
-    pipe = convert(base_model_path, checkpoint_path, lora_prefix_unet, lora_prefix_text_encoder, alpha)
+    pipe = convert(
+        base_model_path,
+        checkpoint_path,
+        lora_prefix_unet,
+        lora_prefix_text_encoder,
+        alpha)
 
     pipe = pipe.to(args.device)
-    pipe.save_pretrained(args.dump_path, safe_serialization=args.to_safetensors)
+    pipe.save_pretrained(
+        args.dump_path,
+        safe_serialization=args.to_safetensors)

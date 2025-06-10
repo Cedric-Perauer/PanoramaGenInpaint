@@ -21,16 +21,18 @@ if __name__ == "__main__":
     input_dirname = args.input_dir
     output_dirname = args.output_dir
 
-    input_metadata_filenames = glob.iglob(f"{input_dirname}/**/metadata.json", recursive=True)
+    input_metadata_filenames = glob.iglob(
+        f"{input_dirname}/**/metadata.json", recursive=True)
 
-    images_count = collections.defaultdict(lambda : 0)
-    
+    images_count = collections.defaultdict(lambda: 0)
+
     os.makedirs(output_dirname)
     for input_filename in tqdm(input_metadata_filenames):
         # Ignore empty files
         with open(input_filename, "r") as f:
             original_metadata = json.load(f)
-            if "multiviews" not in original_metadata or len(original_metadata["multiviews"]) == 0:
+            if "multiviews" not in original_metadata or len(
+                    original_metadata["multiviews"]) == 0:
                 print("No views in", input_filename)
                 continue
 
@@ -38,15 +40,26 @@ if __name__ == "__main__":
         print(relpath)
 
         # Copy metadata, while replacing scene paths by generic keys depending on the dataset, for portability.
-        # Data paths are sorted by decreasing length to avoid potential bugs due to paths starting by the same string pattern.
-        scenes_dataset_paths = dict(sorted(SCENES_DATASET.items(), key=lambda x: len(x[1]), reverse=True))
+        # Data paths are sorted by decreasing length to avoid potential bugs
+        # due to paths starting by the same string pattern.
+        scenes_dataset_paths = dict(
+            sorted(
+                SCENES_DATASET.items(),
+                key=lambda x: len(
+                    x[1]),
+                reverse=True))
         metadata = dict()
         for key, value in original_metadata.items():
-            if key in ("scene_dataset_config_file", "scene", "navmesh") and value != "":
+            if key in (
+                "scene_dataset_config_file",
+                "scene",
+                    "navmesh") and value != "":
                 known_path = False
                 for dataset, dataset_path in scenes_dataset_paths.items():
                     if value.startswith(dataset_path):
-                        value = os.path.join(dataset, os.path.relpath(value, dataset_path))
+                        value = os.path.join(
+                            dataset, os.path.relpath(
+                                value, dataset_path))
                         known_path = True
                         break
                 if not known_path:
@@ -55,9 +68,10 @@ if __name__ == "__main__":
 
         # Compile some general statistics while packing data
         scene_split = metadata["scene"].split("/")
-        upper_level = "/".join(scene_split[:2]) if scene_split[0] == "hm3d" else scene_split[0]
+        upper_level = "/".join(scene_split[:2]
+                               ) if scene_split[0] == "hm3d" else scene_split[0]
         images_count[upper_level] += len(metadata["multiviews"])
-        
+
         output_filename = os.path.join(output_dirname, relpath)
         os.makedirs(os.path.dirname(output_filename), exist_ok=True)
         with open(output_filename, "w") as f:

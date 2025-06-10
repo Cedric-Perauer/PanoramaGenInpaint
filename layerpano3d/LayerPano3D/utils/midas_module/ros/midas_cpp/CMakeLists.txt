@@ -24,8 +24,8 @@ list(APPEND CMAKE_PREFIX_PATH "/usr/local/lib/python3.6/dist-packages/torch/lib"
 list(APPEND CMAKE_PREFIX_PATH "/usr/local/lib/python2.7/dist-packages/torch/lib")
 
 if(NOT EXISTS "~/libtorch")
-    if (EXISTS "/usr/local/lib/python3.6/dist-packages/torch")     
-        include_directories(/usr/local/include) 
+    if (EXISTS "/usr/local/lib/python3.6/dist-packages/torch")
+        include_directories(/usr/local/include)
         include_directories(/usr/local/lib/python3.6/dist-packages/torch/include/torch/csrc/api/include)
         include_directories(/usr/local/lib/python3.6/dist-packages/torch/include)
 
@@ -35,10 +35,10 @@ if(NOT EXISTS "~/libtorch")
         set(CMAKE_PREFIX_PATH /usr/local/lib/python3.6/dist-packages/torch)
         set(Boost_USE_MULTITHREADED ON)
         set(Torch_DIR /usr/local/lib/python3.6/dist-packages/torch)
-            
+
     elseif (EXISTS "/usr/local/lib/python2.7/dist-packages/torch")
-    
-        include_directories(/usr/local/include) 
+
+        include_directories(/usr/local/include)
         include_directories(/usr/local/lib/python2.7/dist-packages/torch/include/torch/csrc/api/include)
         include_directories(/usr/local/lib/python2.7/dist-packages/torch/include)
 
@@ -50,7 +50,7 @@ if(NOT EXISTS "~/libtorch")
         set(Torch_DIR /usr/local/lib/python2.7/dist-packages/torch)
     endif()
 endif()
-        
+
 
 
 find_package(Torch REQUIRED)

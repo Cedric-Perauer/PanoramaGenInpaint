@@ -6,8 +6,9 @@ from PIL import Image
 from torchao.quantization import quantize_, int8_weight_only
 
 controlnet = SD3ControlNetModel.from_pretrained(
-    "alimama-creative/SD3-Controlnet-Inpainting", use_safetensors=True, extra_conditioning_channels=1
-)
+    "alimama-creative/SD3-Controlnet-Inpainting",
+    use_safetensors=True,
+    extra_conditioning_channels=1)
 quantize_(controlnet, int8_weight_only())
 
 pipe = StableDiffusion3ControlNetInpaintingPipeline.from_pretrained(
@@ -17,7 +18,7 @@ pipe = StableDiffusion3ControlNetInpaintingPipeline.from_pretrained(
 )
 pipe.text_encoder.to(torch.float16)
 pipe.controlnet.to(torch.float16)
-#pipe.to("cuda")
+# pipe.to("cuda")
 
 image = Image.open("render.png").convert("RGB")
 mask = Image.open("mask_new.png").convert("L")

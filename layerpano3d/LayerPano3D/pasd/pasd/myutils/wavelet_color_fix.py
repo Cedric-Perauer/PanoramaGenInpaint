@@ -1,8 +1,8 @@
-'''
+"""
 # --------------------------------------------------------------------------------
 #   Color fixed script from Li Yi (https://github.com/pkuliyi2015/sd-webui-stablesr/blob/master/srmodule/colorfix.py)
 # --------------------------------------------------------------------------------
-'''
+"""
 
 import torch
 from PIL import Image
@@ -11,6 +11,7 @@ from torch.nn import functional as F
 
 from torchvision.transforms import ToTensor, ToPILImage
 
+
 def adain_color_fix(target: Image, source: Image):
     # Convert images to tensors
     to_tensor = ToTensor()
@@ -18,13 +19,15 @@ def adain_color_fix(target: Image, source: Image):
     source_tensor = to_tensor(source).unsqueeze(0)
 
     # Apply adaptive instance normalization
-    result_tensor = adaptive_instance_normalization(target_tensor, source_tensor)
+    result_tensor = adaptive_instance_normalization(
+        target_tensor, source_tensor)
 
     # Convert tensor back to image
     to_image = ToPILImage()
     result_image = to_image(result_tensor.squeeze(0).clamp_(0.0, 1.0))
 
     return result_image
+
 
 def wavelet_color_fix(target: Image, source: Image):
     # Convert images to tensors
@@ -41,6 +44,7 @@ def wavelet_color_fix(target: Image, source: Image):
 
     return result_image
 
+
 def calc_mean_std(feat: Tensor, eps=1e-5):
     """Calculate mean and std for adaptive_instance_normalization.
     Args:
@@ -49,14 +53,15 @@ def calc_mean_std(feat: Tensor, eps=1e-5):
             divide-by-zero. Default: 1e-5.
     """
     size = feat.size()
-    assert len(size) == 4, 'The input feature should be 4D tensor.'
+    assert len(size) == 4, "The input feature should be 4D tensor."
     b, c = size[:2]
     feat_var = feat.reshape(b, c, -1).var(dim=2) + eps
     feat_std = feat_var.sqrt().reshape(b, c, 1, 1)
     feat_mean = feat.reshape(b, c, -1).mean(dim=2).reshape(b, c, 1, 1)
     return feat_mean, feat_std
 
-def adaptive_instance_normalization(content_feat:Tensor, style_feat:Tensor):
+
+def adaptive_instance_normalization(content_feat: Tensor, style_feat: Tensor):
     """Adaptive instance normalization.
     Adjust the reference features to have the similar color and illuminations
     as those in the degradate features.
@@ -67,8 +72,10 @@ def adaptive_instance_normalization(content_feat:Tensor, style_feat:Tensor):
     size = content_feat.size()
     style_mean, style_std = calc_mean_std(style_feat)
     content_mean, content_std = calc_mean_std(content_feat)
-    normalized_feat = (content_feat - content_mean.expand(size)) / content_std.expand(size)
+    normalized_feat = (content_feat - content_mean.expand(size)
+                       ) / content_std.expand(size)
     return normalized_feat * style_std.expand(size) + style_mean.expand(size)
+
 
 def wavelet_blur(image: Tensor, radius: int):
     """
@@ -86,10 +93,11 @@ def wavelet_blur(image: Tensor, radius: int):
     kernel = kernel[None, None]
     # repeat the kernel across all input channels
     kernel = kernel.repeat(3, 1, 1, 1)
-    image = F.pad(image, (radius, radius, radius, radius), mode='replicate')
+    image = F.pad(image, (radius, radius, radius, radius), mode="replicate")
     # apply convolution
     output = F.conv2d(image, kernel, groups=3, dilation=radius)
     return output
+
 
 def wavelet_decomposition(image: Tensor, levels=5):
     """
@@ -98,14 +106,15 @@ def wavelet_decomposition(image: Tensor, levels=5):
     """
     high_freq = torch.zeros_like(image)
     for i in range(levels):
-        radius = 2 ** i
+        radius = 2**i
         low_freq = wavelet_blur(image, radius)
-        high_freq += (image - low_freq)
+        high_freq += image - low_freq
         image = low_freq
 
     return high_freq, low_freq
 
-def wavelet_reconstruction(content_feat:Tensor, style_feat:Tensor):
+
+def wavelet_reconstruction(content_feat: Tensor, style_feat: Tensor):
     """
     Apply wavelet decomposition, so that the content will have the same color as the style.
     """

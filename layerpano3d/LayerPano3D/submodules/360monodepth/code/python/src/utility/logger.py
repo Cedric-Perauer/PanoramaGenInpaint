@@ -3,6 +3,7 @@ import traceback
 
 import colorama
 from colorama import Fore, Back, Style
+
 colorama.init()
 
 
@@ -12,7 +13,8 @@ class CustomFormatter(logging.Formatter):
     """
 
     import platform
-    if platform.system() == 'Windows':
+
+    if platform.system() == "Windows":
         grey = "\x1b[38;21m"
         yellow = "\x1b[33;21m"
         magenta = "\x1b[35;21m"
@@ -32,7 +34,7 @@ class CustomFormatter(logging.Formatter):
         logging.INFO: grey + format + reset,
         logging.WARNING: yellow + format + reset,
         logging.ERROR: red + format + reset,
-        logging.CRITICAL: red + format + reset
+        logging.CRITICAL: red + format + reset,
     }
 
     def format(self, record):

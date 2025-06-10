@@ -1,19 +1,21 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
-'''
+"""
 Author: Ke Xian
 Email: kexian@hust.edu.cn
 Date: 2019/04/09
-'''
+"""
 
+import modules.nn as NN
 import torch
 import torch.nn as nn
 import torch.nn.init as init
 import sys
-sys.path.append('./structuredrl/models/syncbn')
-import modules.nn as NN
+
+sys.path.append("./structuredrl/models/syncbn")
 
 # ==============================================================================================================
+
 
 class FTB(nn.Module):
     def __init__(self, inchannels, midchannels=512):
@@ -21,13 +23,36 @@ class FTB(nn.Module):
         self.in1 = inchannels
         self.mid = midchannels
 
-        self.conv1 = nn.Conv2d(in_channels=self.in1, out_channels=self.mid, kernel_size=3, padding=1, stride=1, bias=True)
+        self.conv1 = nn.Conv2d(
+            in_channels=self.in1,
+            out_channels=self.mid,
+            kernel_size=3,
+            padding=1,
+            stride=1,
+            bias=True)
         # NN.BatchNorm2d
-        self.conv_branch = nn.Sequential(nn.ReLU(inplace=True),\
-                                         nn.Conv2d(in_channels=self.mid, out_channels=self.mid, kernel_size=3, padding=1, stride=1, bias=True),\
-                                         NN.BatchNorm2d(num_features=self.mid),\
-                                         nn.ReLU(inplace=True),\
-                                         nn.Conv2d(in_channels=self.mid, out_channels= self.mid, kernel_size=3, padding=1, stride=1, bias=True))
+        self.conv_branch = nn.Sequential(
+            nn.ReLU(
+                inplace=True),
+            nn.Conv2d(
+                in_channels=self.mid,
+                out_channels=self.mid,
+                kernel_size=3,
+                padding=1,
+                stride=1,
+                bias=True),
+            NN.BatchNorm2d(
+                num_features=self.mid),
+            nn.ReLU(
+                inplace=True),
+            nn.Conv2d(
+                in_channels=self.mid,
+                out_channels=self.mid,
+                kernel_size=3,
+                padding=1,
+                stride=1,
+                bias=True),
+        )
         self.relu = nn.ReLU(inplace=True)
 
         self.init_params()
@@ -42,18 +67,18 @@ class FTB(nn.Module):
     def init_params(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                #init.kaiming_normal_(m.weight, mode='fan_out')
+                # init.kaiming_normal_(m.weight, mode='fan_out')
                 init.normal_(m.weight, std=0.01)
                 # init.xavier_normal_(m.weight)
                 if m.bias is not None:
                     init.constant_(m.bias, 0)
             elif isinstance(m, nn.ConvTranspose2d):
-                #init.kaiming_normal_(m.weight, mode='fan_out')
+                # init.kaiming_normal_(m.weight, mode='fan_out')
                 init.normal_(m.weight, std=0.01)
                 # init.xavier_normal_(m.weight)
                 if m.bias is not None:
                     init.constant_(m.bias, 0)
-            elif isinstance(m, NN.BatchNorm2d):  #NN.BatchNorm2d
+            elif isinstance(m, NN.BatchNorm2d):  # NN.BatchNorm2d
                 init.constant_(m.weight, 1)
                 init.constant_(m.bias, 0)
             elif isinstance(m, nn.Linear):
@@ -70,10 +95,17 @@ class FFM(nn.Module):
         self.outchannels = outchannels
         self.upfactor = upfactor
 
-        self.ftb1 = FTB(inchannels=self.inchannels, midchannels=self.midchannels)
-        self.ftb2 = FTB(inchannels=self.midchannels, midchannels=self.outchannels)
+        self.ftb1 = FTB(
+            inchannels=self.inchannels,
+            midchannels=self.midchannels)
+        self.ftb2 = FTB(
+            inchannels=self.midchannels,
+            midchannels=self.outchannels)
 
-        self.upsample = nn.Upsample(scale_factor=self.upfactor, mode='bilinear', align_corners=True)
+        self.upsample = nn.Upsample(
+            scale_factor=self.upfactor,
+            mode="bilinear",
+            align_corners=True)
 
         self.init_params()
 
@@ -88,18 +120,18 @@ class FFM(nn.Module):
     def init_params(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                #init.kaiming_normal_(m.weight, mode='fan_out')
+                # init.kaiming_normal_(m.weight, mode='fan_out')
                 init.normal_(m.weight, std=0.01)
-                #init.xavier_normal_(m.weight)
+                # init.xavier_normal_(m.weight)
                 if m.bias is not None:
                     init.constant_(m.bias, 0)
             elif isinstance(m, nn.ConvTranspose2d):
-                #init.kaiming_normal_(m.weight, mode='fan_out')
+                # init.kaiming_normal_(m.weight, mode='fan_out')
                 init.normal_(m.weight, std=0.01)
-                #init.xavier_normal_(m.weight)
+                # init.xavier_normal_(m.weight)
                 if m.bias is not None:
                     init.constant_(m.bias, 0)
-            elif isinstance(m, NN.BatchNorm2d): #NN.Batchnorm2d
+            elif isinstance(m, NN.BatchNorm2d):  # NN.Batchnorm2d
                 init.constant_(m.weight, 1)
                 init.constant_(m.bias, 0)
             elif isinstance(m, nn.Linear):
@@ -116,11 +148,35 @@ class AO(nn.Module):
         self.outchannels = outchannels
         self.upfactor = upfactor
 
-        self.adapt_conv = nn.Sequential(nn.Conv2d(in_channels=self.inchannels, out_channels=int(self.inchannels/2), kernel_size=3, padding=1, stride=1, bias=True),\
-                                  NN.BatchNorm2d(num_features=int(self.inchannels/2)),\
-                                  nn.ReLU(inplace=True),\
-                                  nn.Conv2d(in_channels=int(self.inchannels/2), out_channels=self.outchannels, kernel_size=3, padding=1, stride=1, bias=True),\
-                                       nn.Upsample(scale_factor=self.upfactor, mode='bilinear', align_corners=True))
+        self.adapt_conv = nn.Sequential(
+            nn.Conv2d(
+                in_channels=self.inchannels,
+                out_channels=int(
+                    self.inchannels / 2),
+                kernel_size=3,
+                padding=1,
+                stride=1,
+                bias=True,
+            ),
+            NN.BatchNorm2d(
+                num_features=int(
+                    self.inchannels / 2)),
+            nn.ReLU(
+                inplace=True),
+            nn.Conv2d(
+                in_channels=int(
+                    self.inchannels / 2),
+                out_channels=self.outchannels,
+                kernel_size=3,
+                padding=1,
+                stride=1,
+                bias=True,
+            ),
+            nn.Upsample(
+                scale_factor=self.upfactor,
+                mode="bilinear",
+                align_corners=True),
+        )
 
         self.init_params()
 
@@ -131,18 +187,18 @@ class AO(nn.Module):
     def init_params(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                #init.kaiming_normal_(m.weight, mode='fan_out')
+                # init.kaiming_normal_(m.weight, mode='fan_out')
                 init.normal_(m.weight, std=0.01)
-                #init.xavier_normal_(m.weight)
+                # init.xavier_normal_(m.weight)
                 if m.bias is not None:
                     init.constant_(m.bias, 0)
             elif isinstance(m, nn.ConvTranspose2d):
-                #init.kaiming_normal_(m.weight, mode='fan_out')
+                # init.kaiming_normal_(m.weight, mode='fan_out')
                 init.normal_(m.weight, std=0.01)
-                #init.xavier_normal_(m.weight)
+                # init.xavier_normal_(m.weight)
                 if m.bias is not None:
                     init.constant_(m.bias, 0)
-            elif isinstance(m, NN.BatchNorm2d): #NN.Batchnorm2d
+            elif isinstance(m, NN.BatchNorm2d):  # NN.Batchnorm2d
                 init.constant_(m.weight, 1)
                 init.constant_(m.bias, 0)
             elif isinstance(m, nn.Linear):

@@ -5,6 +5,7 @@ from torchsparse.utils import sparse_collate_fn, sparse_quantize
 from plyfile import PlyData, PlyElement
 import os
 
+
 def init_image_coor(height, width, u0=None, v0=None):
     u0 = width / 2.0 if u0 is None else u0
     v0 = height / 2.0 if v0 is None else v0
@@ -20,6 +21,7 @@ def init_image_coor(height, width, u0=None, v0=None):
     v_v0 = y - v0
     return u_u0, v_v0
 
+
 def depth_to_pcd(depth, u_u0, v_v0, f, invalid_value=0):
     mask_invalid = depth <= invalid_value
     depth[mask_invalid] = 0.0
@@ -28,6 +30,7 @@ def depth_to_pcd(depth, u_u0, v_v0, f, invalid_value=0):
     z = depth
     pcd = np.stack([x, y, z], axis=2)
     return pcd, ~mask_invalid
+
 
 def pcd_to_sparsetensor(pcd, mask_valid, voxel_size=0.01, num_points=100000):
     pcd_valid = pcd[mask_valid]
@@ -40,21 +43,27 @@ def pcd_to_sparsetensor(pcd, mask_valid, voxel_size=0.01, num_points=100000):
     feat_ = block
 
     # transfer point cloud to voxels
-    inds = sparse_quantize(pc_,
-                           feat_,
-                           return_index=True,
-                           return_invs=False)
+    inds = sparse_quantize(pc_, feat_, return_index=True, return_invs=False)
     if len(inds) > num_points:
         inds = np.random.choice(inds, num_points, replace=False)
 
     pc = pc_[inds]
     feat = feat_[inds]
     lidar = SparseTensor(feat, pc)
-    feed_dict = [{'lidar': lidar}]
+    feed_dict = [{"lidar": lidar}]
     inputs = sparse_collate_fn(feed_dict)
     return inputs
 
-def pcd_uv_to_sparsetensor(pcd, u_u0, v_v0, mask_valid, f= 500.0, voxel_size=0.01, mask_side=None, num_points=100000):
+
+def pcd_uv_to_sparsetensor(
+        pcd,
+        u_u0,
+        v_v0,
+        mask_valid,
+        f=500.0,
+        voxel_size=0.01,
+        mask_side=None,
+        num_points=100000):
     if mask_side is not None:
         mask_valid = mask_valid & mask_side
     pcd_valid = pcd[mask_valid]
@@ -65,23 +74,19 @@ def pcd_uv_to_sparsetensor(pcd, u_u0, v_v0, mask_valid, f= 500.0, voxel_size=0.0
     block = np.zeros_like(block_)
     block[:, :] = block_[:, :]
 
-
     pc_ = np.round(block_[:, :3] / voxel_size)
     pc_ -= pc_.min(0, keepdims=1)
     feat_ = block
 
     # transfer point cloud to voxels
-    inds = sparse_quantize(pc_,
-                           feat_,
-                           return_index=True,
-                           return_invs=False)
+    inds = sparse_quantize(pc_, feat_, return_index=True, return_invs=False)
     if len(inds) > num_points:
         inds = np.random.choice(inds, num_points, replace=False)
 
     pc = pc_[inds]
     feat = feat_[inds]
     lidar = SparseTensor(feat, pc)
-    feed_dict = [{'lidar': lidar}]
+    feed_dict = [{"lidar": lidar}]
     inputs = sparse_collate_fn(feed_dict)
     return inputs
 
@@ -91,22 +96,33 @@ def refine_focal_one_step(depth, focal, model, u0, v0):
     u_u0, v_v0 = init_image_coor(depth.shape[0], depth.shape[1], u0=u0, v0=v0)
     pcd, mask_valid = depth_to_pcd(depth, u_u0, v_v0, f=focal, invalid_value=0)
     # input for the voxelnet
-    feed_dict = pcd_uv_to_sparsetensor(pcd, u_u0, v_v0, mask_valid, f=focal, voxel_size=0.005, mask_side=None)
-    inputs = feed_dict['lidar'].cuda()
+    feed_dict = pcd_uv_to_sparsetensor(
+        pcd,
+        u_u0,
+        v_v0,
+        mask_valid,
+        f=focal,
+        voxel_size=0.005,
+        mask_side=None)
+    inputs = feed_dict["lidar"].cuda()
 
     outputs = model(inputs)
     return outputs
+
 
 def refine_shift_one_step(depth_wshift, model, focal, u0, v0):
     # reconstruct PCD from depth
-    u_u0, v_v0 = init_image_coor(depth_wshift.shape[0], depth_wshift.shape[1], u0=u0, v0=v0)
-    pcd_wshift, mask_valid = depth_to_pcd(depth_wshift, u_u0, v_v0, f=focal, invalid_value=0)
+    u_u0, v_v0 = init_image_coor(
+        depth_wshift.shape[0], depth_wshift.shape[1], u0=u0, v0=v0)
+    pcd_wshift, mask_valid = depth_to_pcd(
+        depth_wshift, u_u0, v_v0, f=focal, invalid_value=0)
     # input for the voxelnet
     feed_dict = pcd_to_sparsetensor(pcd_wshift, mask_valid, voxel_size=0.01)
-    inputs = feed_dict['lidar'].cuda()
+    inputs = feed_dict["lidar"].cuda()
 
     outputs = model(inputs)
     return outputs
+
 
 def refine_focal(depth, focal, model, u0, v0):
     last_scale = 1
@@ -117,6 +133,7 @@ def refine_focal(depth, focal, model, u0, v0):
         last_scale = last_scale * scale
     return torch.tensor([[last_scale]])
 
+
 def refine_shift(depth_wshift, model, focal, u0, v0):
     depth_wshift_tmp = np.copy(depth_wshift)
     last_shift = 0
@@ -126,6 +143,7 @@ def refine_shift(depth_wshift, model, focal, u0, v0):
         depth_wshift_tmp -= shift.item()
         last_shift += shift.item()
     return torch.tensor([[last_shift]])
+
 
 def reconstruct_3D(depth, f):
     """
@@ -144,7 +162,7 @@ def reconstruct_3D(depth, f):
     v = v.transpose(1, 0)
 
     if f > 1e5:
-        print('Infinit focal length!!!')
+        print("Infinit focal length!!!")
         x = u - cu
         y = v - cv
         z = depth / depth.max() * x.max()
@@ -160,6 +178,7 @@ def reconstruct_3D(depth, f):
     pcd = pcd.astype(np.int)
     return pcd
 
+
 def save_point_cloud(pcd, rgb, filename, binary=True):
     """Save an RGB point cloud as a PLY file.
 
@@ -170,23 +189,30 @@ def save_point_cloud(pcd, rgb, filename, binary=True):
     assert pcd.shape[0] == rgb.shape[0]
 
     if rgb is None:
-        gray_concat = np.tile(np.array([128], dtype=np.uint8), (pcd.shape[0], 3))
+        gray_concat = np.tile(
+            np.array(
+                [128], dtype=np.uint8), (pcd.shape[0], 3))
         points_3d = np.hstack((pcd, gray_concat))
     else:
         points_3d = np.hstack((pcd, rgb))
     python_types = (float, float, float, int, int, int)
-    npy_types = [('x', 'f4'), ('y', 'f4'), ('z', 'f4'), ('red', 'u1'), ('green', 'u1'),
-                 ('blue', 'u1')]
+    npy_types = [("x", "f4"), ("y", "f4"), ("z", "f4"),
+                 ("red", "u1"), ("green", "u1"), ("blue", "u1")]
     if binary is True:
         # Format into NumPy structured array
         vertices = []
         for row_idx in range(points_3d.shape[0]):
             cur_point = points_3d[row_idx]
-            vertices.append(tuple(dtype(point) for dtype, point in zip(python_types, cur_point)))
+            vertices.append(
+                tuple(
+                    dtype(point) for dtype,
+                    point in zip(
+                        python_types,
+                        cur_point)))
         vertices_array = np.array(vertices, dtype=npy_types)
-        el = PlyElement.describe(vertices_array, 'vertex')
+        el = PlyElement.describe(vertices_array, "vertex")
 
-         # Write
+        # Write
         PlyData([el]).write(filename)
     else:
         x = np.squeeze(points_3d[:, 0])
@@ -196,18 +222,22 @@ def save_point_cloud(pcd, rgb, filename, binary=True):
         g = np.squeeze(points_3d[:, 4])
         b = np.squeeze(points_3d[:, 5])
 
-        ply_head = 'ply\n' \
-                   'format ascii 1.0\n' \
-                   'element vertex %d\n' \
-                   'property float x\n' \
-                   'property float y\n' \
-                   'property float z\n' \
-                   'property uchar red\n' \
-                   'property uchar green\n' \
-                   'property uchar blue\n' \
-                   'end_header' % r.shape[0]
+        ply_head = (
+            "ply\n"
+            "format ascii 1.0\n"
+            "element vertex %d\n"
+            "property float x\n"
+            "property float y\n"
+            "property float z\n"
+            "property uchar red\n"
+            "property uchar green\n"
+            "property uchar blue\n"
+            "end_header" % r.shape[0]
+        )
         # ---- Save ply data to disk
-        np.savetxt(filename, np.column_stack((x, y, z, r, g, b)), fmt="%d %d %d %d %d %d", header=ply_head, comments='')
+        np.savetxt(filename, np.column_stack((x, y, z, r, g, b)),
+                   fmt="%d %d %d %d %d %d", header=ply_head, comments="")
+
 
 def reconstruct_depth(depth, rgb, dir, pcd_name, focal):
     """
@@ -223,7 +253,7 @@ def reconstruct_depth(depth, rgb, dir, pcd_name, focal):
 
     pcd = reconstruct_3D(depth, f=focal)
     rgb_n = np.reshape(rgb, (-1, 3))
-    save_point_cloud(pcd, rgb_n, os.path.join(dir, pcd_name + '.ply'))
+    save_point_cloud(pcd, rgb_n, os.path.join(dir, pcd_name + ".ply"))
 
 
 def recover_metric_depth(pred, gt):

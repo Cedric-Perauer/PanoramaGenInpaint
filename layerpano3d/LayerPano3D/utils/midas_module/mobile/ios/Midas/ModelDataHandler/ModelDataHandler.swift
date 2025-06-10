@@ -96,7 +96,7 @@ class ModelDataHandler {
       fatalError("Unexpected Model: input shape")
     }
 
-    
+
     guard heatsTensor.shape.dimensions[0] == Model.output.batchSize,
       heatsTensor.shape.dimensions[1] == Model.output.height,
       heatsTensor.shape.dimensions[2] == Model.output.width,
@@ -174,8 +174,8 @@ class ModelDataHandler {
       print("Output tensor data type \(outputTensor.dataType) is unsupported for this example app.")
       return nil
     }
-    
-    
+
+
     let times = Times(
       preprocessing: preprocessingTime,
       inference: inferenceTime,
@@ -219,8 +219,8 @@ class ModelDataHandler {
     return inputData
   }
 
-   
-    
+
+
     /*
   /// Postprocesses output `Tensor`s to `Result` with size of view to render the result.
   ///
@@ -308,9 +308,9 @@ class ModelDataHandler {
     return result
   }
 */
-    
 
-    
+
+
   /// Run inference with given `Data`
   ///
   /// Parameter `from`: `Data` of input image to run model.
@@ -326,7 +326,7 @@ class ModelDataHandler {
       outputTensor = try interpreter.output(at: 0)
       //heatsTensor = try interpreter.output(at: 0)
       //offsetsTensor = try interpreter.output(at: 1)
-        
+
 
     } catch let error {
       os_log(

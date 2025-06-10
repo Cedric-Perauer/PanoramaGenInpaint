@@ -3,7 +3,7 @@
   <name>midas_cpp</name>
   <version>0.1.0</version>
   <description>The midas_cpp package</description>
-    
+
   <maintainer email="alexeyab84@gmail.com">Alexey Bochkovskiy</maintainer>
   <license>MIT</license>
   <url type="website">https://github.com/isl-org/MiDaS/tree/master/ros</url>

@@ -17,36 +17,45 @@ from scene.layer_gaussian_model import LayerGaussian
 class Scene:
     gaussians: LayerGaussian
 
-    def __init__(self, traindata, gaussians_prev, gaussians: LayerGaussian, opt: GSParams, is_finetune=False):
+    def __init__(
+            self,
+            traindata,
+            gaussians_prev,
+            gaussians: LayerGaussian,
+            opt: GSParams,
+            is_finetune=False):
         self.traindata = traindata
         self.gaussians = gaussians
-        
+
         info = readDataInfo(traindata, opt.white_background)
-        random.shuffle(info.train_cameras)  # Multi-res consistent random shuffling
+        # Multi-res consistent random shuffling
+        random.shuffle(info.train_cameras)
 
         # self.cameras_extent = info.nerf_normalization["radius"]
         self.cameras_extent = 1
 
         print("Loading Training Cameras")
-        self.train_cameras = info.train_cameras        
+        self.train_cameras = info.train_cameras
 
         print("Loading Preset Cameras")
         self.preset_cameras = {}
-        
+
         if is_finetune:
             self.gaussians.load_gaussians(gaussians_prev, self.cameras_extent)
         else:
-            self.gaussians.load_ply_and_create_pcd(gaussians_prev, info.point_cloud, info.masks, self.cameras_extent)
-            
+            self.gaussians.load_ply_and_create_pcd(
+                gaussians_prev, info.point_cloud, info.masks, self.cameras_extent)
+
         self.gaussians.training_setup(opt)
 
     def getTrainCameras(self):
         return self.train_cameras
-    
+
     def getPresetCameras(self, preset):
         assert preset in self.preset_cameras
         return self.preset_cameras[preset]
-    
+
+
 ###### Original Implementation ########
 
 # class Scene:
@@ -55,15 +64,16 @@ class Scene:
 #     def __init__(self, traindata, gaussians: GaussianModel, opt: GSParams):
 #         self.traindata = traindata
 #         self.gaussians = gaussians
-        
+
 #         info = readDataInfo(traindata, opt.white_background)
-#         random.shuffle(info.train_cameras)  # Multi-res consistent random shuffling
+# random.shuffle(info.train_cameras)  # Multi-res consistent random
+# shuffling
 
 #         # self.cameras_extent = info.nerf_normalization["radius"]
 #         self.cameras_extent = 1
 
 #         print("Loading Training Cameras")
-#         self.train_cameras = info.train_cameras        
+#         self.train_cameras = info.train_cameras
 
 #         print("Loading Preset Cameras")
 #         self.preset_cameras = {}
@@ -76,7 +86,7 @@ class Scene:
 
 #     def getTrainCameras(self):
 #         return self.train_cameras
-    
+
 #     def getPresetCameras(self, preset):
 #         assert preset in self.preset_cameras
 #         return self.preset_cameras[preset]
