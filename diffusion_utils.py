@@ -201,7 +201,6 @@ def load_pipeline(four_bit=False):
     pipeline.enable_model_cpu_offload()
     return pipeline
 
-
 def load_contolnet_pipeline():
     import sys
 
@@ -337,3 +336,4 @@ def fix_mask(
         generator=torch.Generator("cpu").manual_seed(0),
     ).images[0]
     return image_gen
+
