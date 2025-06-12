@@ -6,6 +6,8 @@ import numpy as np
 from image_utils import visualize_all_inpainting_masks
 from PIL import Image
 from matplotlib import pyplot as plt
+import cv2
+import os
 
 IMAGE_SIZE = 1024
 
@@ -112,12 +114,25 @@ def vis_inpaint_strategy(vis=False):
 def fix_inpaint_mask(mask, contour_color=(0, 255, 0), fill_color=(0, 0, 0), extend_amount=100, mode=None, side="r"):
     mask_copy = mask.copy()
     if mask_copy.dtype != np.uint8:
-
         mask_copy = (mask_copy * 255).astype(np.uint8)
 
+    # Create a color version of the mask for drawing
+    color_mask = cv2.cvtColor(mask_copy, cv2.COLOR_GRAY2BGR)
+    
     inverted = cv2.bitwise_not(mask_copy)
     contours, _ = cv2.findContours(inverted, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    # Find the largest contour
+    if contours:
+        largest_contour = max(contours, key=cv2.contourArea)
+        # Draw the largest contour in green
+        cv2.drawContours(color_mask, [largest_contour], -1, contour_color, 2)
+    
+    # Save the contour visualization
+    os.makedirs("imgs", exist_ok=True)
+    cv2.imwrite("imgs/mask_with_contour.png", color_mask)
 
+    # Continue with the original mask processing
     cv2.drawContours(mask_copy, contours, -1, 0, -1)
     if extend_amount > 0:
         kernel = np.ones((extend_amount, extend_amount), np.uint8)
@@ -126,25 +141,6 @@ def fix_inpaint_mask(mask, contour_color=(0, 255, 0), fill_color=(0, 0, 0), exte
     blur_amount = 20
     if blur_amount > 0:
         mask_copy = cv2.GaussianBlur(mask_copy, (blur_amount * 2 + 1, blur_amount * 2 + 1), 0)
-
-    if mode is not None:
-        if side == "r":
-            if mode == "step1":
-                mask_copy[:, -150:] = 0
-            elif mode == "step2":
-                mask_copy = np.zeros_like(mask_copy)
-                mask_copy[:, -200:] = 255
-            else:
-                raise ValueError(f"Invalid mode: {mode}")
-
-        if side == "l":
-            if mode == "step1":
-                mask_copy[:, :250] = 0
-            elif mode == "step2":
-                mask_copy = np.zeros_like(mask_copy)
-                mask_copy[:, :270] = 1
-            else:
-                raise ValueError(f"Invalid mode: {mode}")
 
     return mask_copy
 

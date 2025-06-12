@@ -273,9 +273,9 @@ if SIDE_VIEWS:
 cur_pano = Image.open("imgs/cur_pano_7.png")
 initial_pano_np = np.array(cur_pano)
 if not TOP_BOTTOM_FIRST:
-    for cidx, view in tqdm(enumerate(top_and_bottom_views[:2]), desc="Processing top and bottom views"):
+    for cidx, view in tqdm(enumerate(all_views_data[:6]), desc="Processing top and bottom views"):
         idx = cidx + len(side_views)
-        if cidx == 0:
+        if cidx < 3:
             prompt = "floor of a city town square"
         else:
             prompt = "Blue sky "
@@ -287,7 +287,10 @@ if not TOP_BOTTOM_FIRST:
         render_img_pil = cv2_to_pil(render_img)
         render_img_pil.save(f"imgs/render_in_top_bottom_mask{idx}.png")
         mask = create_mask_from_black(render_img, threshold=10)
-        new_mask = fix_inpaint_mask(mask, extend_amount=20)
+        cv2_to_pil(mask).save(f"imgs/new_mask_pre_{idx}.png")
+        #new_mask = fix_inpaint_mask(mask, extend_amount=20)
+        new_mask = mask
+        cv2_to_pil(new_mask).save(f"imgs/new_mask_{idx}.png")
         render_img = cv2.cvtColor(render_img, cv2.COLOR_BGR2RGB)
         # render_img = cv2.cvtColor(view["render"], cv2.COLOR_BGR2RGB)
         render_img = cv2_to_pil(render_img)
@@ -306,13 +309,15 @@ if not TOP_BOTTOM_FIRST:
         image = image.resize((1024, 1024), Image.LANCZOS)
         image.save(f"imgs/render_top_bottom_out_{idx}.png")
 
-        # if cidx == 0:
-        #    new_mask = None
+        if cidx == 0:
+            yaw_deg = -view["yaw"]
+        else:
+            yaw_deg = view["yaw"]
 
         inital_pano_np = project_perspective_to_equirect(
             cv2.cvtColor(pil_to_cv2(image), cv2.COLOR_BGR2RGB),
             initial_pano_np,
-            yaw_deg=-view["yaw"],
+            yaw_deg=yaw_deg,
             pitch_deg=view["pitch"],
             h_fov_deg=view["fov"],
             v_fov_deg=view["fov"],
