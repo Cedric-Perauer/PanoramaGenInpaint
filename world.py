@@ -270,15 +270,20 @@ if SIDE_VIEWS:
         cv2.imwrite(f"imgs/cur_pano_{idx}.png", cur_pano)
 
 
-cur_pano = Image.open("imgs/cur_pano_7.png")
-initial_pano_np = np.array(cur_pano)
+
+
 if not TOP_BOTTOM_FIRST:
-    for cidx, view in tqdm(enumerate(all_views_data[:6]), desc="Processing top and bottom views"):
-        idx = cidx + len(side_views)
-        if cidx < 3:
-            prompt = "floor of a city town square"
-        else:
-            prompt = "Blue sky "
+    cur_pano = Image.open("imgs/top_bottom_pano_10.png")
+    initial_pano_np = np.array(cur_pano)
+    top_bottom_views = all_views_data[3:5]
+
+    for cidx, view in tqdm(enumerate(top_bottom_views), desc="Processing top and bottom views"):
+        idx = cidx + len(side_views) + 3
+        print(f"Processing top and bottom views {idx}")
+        #if cidx < 3:
+        #    prompt = "floor of a city town square"
+        #else:
+        prompt = "Blue sky "
 
         render_img = render_perspective(
             initial_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
@@ -288,7 +293,11 @@ if not TOP_BOTTOM_FIRST:
         render_img_pil.save(f"imgs/render_in_top_bottom_mask{idx}.png")
         mask = create_mask_from_black(render_img, threshold=10)
         cv2_to_pil(mask).save(f"imgs/new_mask_pre_{idx}.png")
-        #new_mask = fix_inpaint_mask(mask, extend_amount=20)
+        # new_mask = fix_inpaint_mask(mask, extend_amount=20)
+        extend_amount = 20
+        kernel = np.ones((extend_amount, extend_amount), np.uint8)
+        mask = cv2.dilate(mask, kernel, iterations=1)
+        
         new_mask = mask
         cv2_to_pil(new_mask).save(f"imgs/new_mask_{idx}.png")
         render_img = cv2.cvtColor(render_img, cv2.COLOR_BGR2RGB)
