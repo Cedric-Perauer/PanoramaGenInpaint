@@ -28,9 +28,9 @@ REFINER = False
 COMPOSITE = False
 TOP_BOTTOM_VIEWS = True
 IMAGE_SIZE = 1024
-SIDE_VIEWS = False
+SIDE_VIEWS = True
 cond_scale = 0.9
-TOP_BOTTOM_FIRST = False
+TOP_BOTTOM_FIRST = True
 
 if GEN:
     pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-schnell", torch_dtype=torch.bfloat16)
@@ -68,12 +68,12 @@ clear_gpu_memory()
 pipeline = load_contolnet_pipeline()
 
 # inital_pano = Image.open("imgs/initial_pano_with_back.png")
-inital_pano = Image.open("imgs/initial_pano_center.png")
+inital_pano = Image.open("imgs/cur_pano_0_middle.png")
 initial_pano_np = np.array(inital_pano)
 
 if TOP_BOTTOM_FIRST:
     if TOP_BOTTOM_VIEWS:
-        for idx, view in tqdm(enumerate(top_and_bottom_views[:1]), desc="Processing top and bottom views"):
+        for idx, view in tqdm(enumerate(top_and_bottom_views), desc="Processing top and bottom views"):
             if idx == 0:
                 prompt = "floor of a city town square"
             else:
@@ -82,11 +82,12 @@ if TOP_BOTTOM_FIRST:
             render_img = render_perspective(
                 initial_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
             )
-            show_image_cv2(cv2.cvtColor(render_img, cv2.COLOR_BGR2RGB))
+            #show_image_cv2(cv2.cvtColor(render_img, cv2.COLOR_BGR2RGB))
 
             mask = create_mask_from_black(render_img, threshold=10)
             new_mask = fix_inpaint_mask(mask, extend_amount=20)
-            render_img = cv2.cvtColor(view["render"], cv2.COLOR_BGR2RGB)
+            cv2_to_pil(new_mask).save(f"imgs/new_mask_{idx}.png")
+            render_img = cv2.cvtColor(render_img, cv2.COLOR_BGR2RGB)
             render_img = cv2_to_pil(render_img)
             print(f"Render image shape: {render_img.size}{mask.shape}")
             render_img.save(f"imgs/render_in_top_bottom_{idx}.png")
@@ -102,15 +103,17 @@ if TOP_BOTTOM_FIRST:
             )
             image = image.resize((1024, 1024), Image.LANCZOS)
             image.save(f"imgs/render_top_bottom_out_{idx}.png")
+            '''
             if REFINER or idx == 0:
                 run_with_conda_env(
                     "diffusers33",
                     f"refiner.py imgs/render_top_bottom_out_{idx}.png --output_path imgs/refined_top_bottom_{idx}.png",
                 )
                 image = Image.open(f"imgs/refined_top_bottom_{idx}.png")
+            '''
 
-            if idx == 0:
-                new_mask = None
+            #if idx == 0:
+            #    new_mask = None
 
             inital_pano_np = project_perspective_to_equirect(
                 cv2.cvtColor(pil_to_cv2(image), cv2.COLOR_BGR2RGB),
@@ -130,7 +133,7 @@ side_view_pano_np = np.array(inital_pano)
 
 
 if SIDE_VIEWS:
-    for idx, view in enumerate(tqdm(side_views, desc="Processing side views")):
+    for idx, view in enumerate(tqdm(side_views[1:], desc="Processing side views")):
         show_image_cv2(cv2.cvtColor(side_view_pano_np, cv2.COLOR_BGR2RGB))
         render_img = render_perspective(
             side_view_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
@@ -270,8 +273,6 @@ if SIDE_VIEWS:
         cv2.imwrite(f"imgs/cur_pano_{idx}.png", cur_pano)
 
 
-
-
 if not TOP_BOTTOM_FIRST:
     cur_pano = Image.open("imgs/top_bottom_pano_10.png")
     initial_pano_np = np.array(cur_pano)
@@ -280,10 +281,10 @@ if not TOP_BOTTOM_FIRST:
     for cidx, view in tqdm(enumerate(top_bottom_views), desc="Processing top and bottom views"):
         idx = cidx + len(side_views) + 3
         print(f"Processing top and bottom views {idx}")
-        #if cidx < 3:
+        # if cidx < 3:
         #    prompt = "floor of a city town square"
-        #else:
-        prompt = "Blue sky "
+        # else:
+        prompt = "A Blue sky region with a tree"
 
         render_img = render_perspective(
             initial_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
@@ -297,7 +298,7 @@ if not TOP_BOTTOM_FIRST:
         extend_amount = 20
         kernel = np.ones((extend_amount, extend_amount), np.uint8)
         mask = cv2.dilate(mask, kernel, iterations=1)
-        
+
         new_mask = mask
         cv2_to_pil(new_mask).save(f"imgs/new_mask_{idx}.png")
         render_img = cv2.cvtColor(render_img, cv2.COLOR_BGR2RGB)
@@ -305,6 +306,7 @@ if not TOP_BOTTOM_FIRST:
         render_img = cv2_to_pil(render_img)
         print(f"Render image shape: {render_img.size}{mask.shape}")
         render_img.save(f"imgs/render_in_top_bottom_{idx}.png")
+        cond_scale = 0.7
         image = outpaint_controlnet(
             pipeline,
             render_img,
