@@ -67,9 +67,69 @@ clear_gpu_memory()
 
 pipeline = load_contolnet_pipeline()
 
-# inital_pano = Image.open("imgs/initial_pano_with_back.png")
-inital_pano = Image.open("imgs/cur_pano_0_middle.png")
+inital_pano = Image.open("imgs/initial_pano_center.png")
 initial_pano_np = np.array(inital_pano)
+
+
+idx = 0
+view = side_views[0]
+render_img = render_perspective(
+            initial_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
+        )
+
+mask = create_mask_from_black(render_img, threshold=10)
+new_mask = fix_inpaint_mask(mask, extend_amount=100)
+
+save_mask = Image.fromarray(new_mask).convert("L")
+save_mask.save(f"new_mask_{idx}.png")
+render_img = Image.fromarray(render_img).convert("RGB")
+
+prompt = "a photorealistic house on a market square in 1800s style, the sky region is blue with clouds"
+
+print(f"Render image shape: {render_img.size}{mask.shape}")
+render_img.save(f"imgs/render_{idx}.png")
+
+# if idx == 0:
+#    cond_scale = 0.4
+# else:
+cond_scale = 0.9
+
+image = outpaint_controlnet(
+    pipeline,
+    render_img,
+    new_mask,
+    vis=True,
+    prompt=prompt,
+    num_steps=50,
+    guidance_scale=3.5,
+    cond_scale=cond_scale,
+)
+
+image = image.resize((1024, 1024), Image.LANCZOS)
+image.save(f"imgs/render_in_{idx}.png")
+clear_gpu_memory()
+
+run_with_conda_env(
+    "diffusers33", f"refiner.py imgs/render_in_{idx}.png --output_path imgs/refined_output_{idx}.png"
+)
+image = Image.open(f"imgs/refined_output_{idx}.png")
+
+inital_pano_np = project_perspective_to_equirect(
+    cv2.cvtColor(pil_to_cv2(image), cv2.COLOR_BGR2RGB),
+    initial_pano_np,
+    yaw_deg=view["yaw"],
+    pitch_deg=view["pitch"],
+    h_fov_deg=view["fov"],
+    v_fov_deg=view["fov"],
+    mask=None,  # Original mask - only project where we outpainted,
+    mirror=False,
+)
+
+cur_pano = cv2.cvtColor(inital_pano_np, cv2.COLOR_BGR2RGB)
+cv2.imwrite(f"imgs/cur_pano_initial.png", cur_pano)
+
+
+
 
 if TOP_BOTTOM_FIRST:
     if TOP_BOTTOM_VIEWS:
@@ -77,14 +137,15 @@ if TOP_BOTTOM_FIRST:
             if idx == 0:
                 prompt = "floor of a city town square"
             else:
-                prompt = "Blue sky "
+                prompt = "A Blue sky"
 
             render_img = render_perspective(
                 initial_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
             )
-            #show_image_cv2(cv2.cvtColor(render_img, cv2.COLOR_BGR2RGB))
+            # show_image_cv2(cv2.cvtColor(render_img, cv2.COLOR_BGR2RGB))
 
             mask = create_mask_from_black(render_img, threshold=10)
+            new_mask = mask
             new_mask = fix_inpaint_mask(mask, extend_amount=20)
             cv2_to_pil(new_mask).save(f"imgs/new_mask_{idx}.png")
             render_img = cv2.cvtColor(render_img, cv2.COLOR_BGR2RGB)
@@ -103,16 +164,16 @@ if TOP_BOTTOM_FIRST:
             )
             image = image.resize((1024, 1024), Image.LANCZOS)
             image.save(f"imgs/render_top_bottom_out_{idx}.png")
-            '''
+            """
             if REFINER or idx == 0:
                 run_with_conda_env(
                     "diffusers33",
                     f"refiner.py imgs/render_top_bottom_out_{idx}.png --output_path imgs/refined_top_bottom_{idx}.png",
                 )
                 image = Image.open(f"imgs/refined_top_bottom_{idx}.png")
-            '''
+            """
 
-            #if idx == 0:
+            # if idx == 0:
             #    new_mask = None
 
             inital_pano_np = project_perspective_to_equirect(
@@ -134,11 +195,9 @@ side_view_pano_np = np.array(inital_pano)
 
 if SIDE_VIEWS:
     for idx, view in enumerate(tqdm(side_views[1:], desc="Processing side views")):
-        show_image_cv2(cv2.cvtColor(side_view_pano_np, cv2.COLOR_BGR2RGB))
         render_img = render_perspective(
             side_view_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
         )
-        show_image_cv2(cv2.cvtColor(render_img, cv2.COLOR_BGR2RGB))
 
         mask = create_mask_from_black(render_img, threshold=10)
         if idx == 0:
@@ -149,7 +208,7 @@ if SIDE_VIEWS:
         save_mask = Image.fromarray(new_mask).convert("L")
         save_mask.save(f"new_mask_{idx}.png")
         render_img = Image.fromarray(render_img).convert("RGB")
-        show_image_cv2(pil_to_cv2(new_mask))
+        
         prompt = "a new photorealistic house on a market square in 1800s stylex, without people"
         if idx == 1 and TOP_BOTTOM_FIRST:
             prompt = "a blue region with clouds"
@@ -162,52 +221,16 @@ if SIDE_VIEWS:
         # else:
         cond_scale = 0.9
 
-        if idx not in right_side_nums and idx not in left_side_nums:
-            image = outpaint_controlnet(
-                pipeline,
-                render_img,
-                new_mask,
-                vis=True,
-                prompt=prompt,
-                num_steps=50,
-                guidance_scale=3.5,
-                cond_scale=cond_scale,
-            )
-        else:
-            if idx in right_side_nums:
-                print(f"Right side {idx}")
-                cur_mask = fix_inpaint_mask(new_mask, mode="step1", side="r")
-                render_img.save(f"imgs/input_1_{idx}.png")
-                image = outpaint_controlnet(
-                    pipeline,
-                    render_img,
-                    copy.deepcopy(cur_mask),
-                    vis=True,
-                    prompt=prompt,
-                    num_steps=50,
-                    guidance_scale=3.5,
-                    cond_scale=cond_scale,
-                )
-                Image.fromarray(cur_mask).convert("RGB").save(f"imgs/cur_mask_{idx}_1.png")
-                image.save(f"imgs/fix_render_{idx}_1.png")
-
-                cur_mask = fix_inpaint_mask(new_mask, mode="step2", side="r")
-                image.save(f"imgs/input_2_{idx}.png")
-                image = outpaint_controlnet(
-                    pipeline,
-                    image,
-                    copy.deepcopy(cur_mask),
-                    vis=True,
-                    prompt=prompt,
-                    num_steps=50,
-                    guidance_scale=3.5,
-                    cond_scale=cond_scale,
-                )
-                Image.fromarray(cur_mask).convert("RGB").save(f"imgs/cur_mask_{idx}_2.png")
-                image.save(f"imgs/fix_render_{idx}_2.png")
-
-            else:
-                new_mask = fix_inpaint_mask(new_mask, mode="step1", side="l")
+        image = outpaint_controlnet(
+            pipeline,
+            render_img,
+            new_mask,
+            vis=True,
+            prompt=prompt,
+            num_steps=50,
+            guidance_scale=3.5,
+            cond_scale=cond_scale,
+        )
 
         image = image.resize((1024, 1024), Image.LANCZOS)
         image.save(f"imgs/render_in_{idx}.png")
@@ -247,17 +270,6 @@ if SIDE_VIEWS:
         cur_mask = new_mask
         # if idx == 0:
         #    cur_mask = None
-        side_view_pano_np = project_perspective_to_equirect(
-            cv2.cvtColor(pil_to_cv2(image), cv2.COLOR_BGR2RGB),
-            side_view_pano_np,
-            yaw_deg=view["yaw"],
-            pitch_deg=view["pitch"],
-            h_fov_deg=view["fov"],
-            v_fov_deg=view["fov"],
-            mask=cur_mask,  # Original mask - only project where we outpainted,
-            mirror=False,
-        )
-
         side_view_pano_np = project_perspective_to_equirect(
             cv2.cvtColor(pil_to_cv2(image), cv2.COLOR_BGR2RGB),
             side_view_pano_np,
