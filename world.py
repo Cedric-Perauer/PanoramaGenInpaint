@@ -26,11 +26,12 @@ GEN = False
 USE_SDXL = False
 REFINER = False
 COMPOSITE = False
-TOP_BOTTOM_VIEWS = True
+TOP_BOTTOM_VIEWS = False
 IMAGE_SIZE = 1024
 SIDE_VIEWS = True
 cond_scale = 0.9
-TOP_BOTTOM_FIRST = True
+TOP_BOTTOM_FIRST = False
+GEN_FIRST = False
 
 if GEN:
     pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-schnell", torch_dtype=torch.bfloat16)
@@ -67,71 +68,75 @@ clear_gpu_memory()
 
 pipeline = load_contolnet_pipeline()
 
-inital_pano = Image.open("imgs/initial_pano_center.png")
-initial_pano_np = np.array(inital_pano)
+if GEN_FIRST: 
+    print("Generating first image")
+    inital_pano = Image.open("imgs/initial_pano_center.png")
+    initial_pano_np = np.array(inital_pano)
 
 
-idx = 0
-view = side_views[0]
-render_img = render_perspective(
-            initial_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
-        )
+    idx = 0
+    view = side_views[0]
+    render_img = render_perspective(
+                initial_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
+            )
 
-mask = create_mask_from_black(render_img, threshold=10)
-new_mask = fix_inpaint_mask(mask, extend_amount=100)
+    mask = create_mask_from_black(render_img, threshold=10)
+    new_mask = fix_inpaint_mask(mask, extend_amount=100)
 
-save_mask = Image.fromarray(new_mask).convert("L")
-save_mask.save(f"new_mask_{idx}.png")
-render_img = Image.fromarray(render_img).convert("RGB")
+    save_mask = Image.fromarray(new_mask).convert("L")
+    save_mask.save(f"new_mask_{idx}.png")
+    render_img = Image.fromarray(render_img).convert("RGB")
 
-prompt = "a photorealistic house on a market square in 1800s style, the sky region is blue with clouds"
+    prompt = "a photorealistic house on a market square in 1800s style, the sky region is blue with clouds"
 
-print(f"Render image shape: {render_img.size}{mask.shape}")
-render_img.save(f"imgs/render_{idx}.png")
+    print(f"Render image shape: {render_img.size}{mask.shape}")
+    render_img.save(f"imgs/render_{idx}.png")
 
-# if idx == 0:
-#    cond_scale = 0.4
-# else:
-cond_scale = 0.9
+    # if idx == 0:
+    #    cond_scale = 0.4
+    # else:
+    cond_scale = 0.9
 
-image = outpaint_controlnet(
-    pipeline,
-    render_img,
-    new_mask,
-    vis=True,
-    prompt=prompt,
-    num_steps=50,
-    guidance_scale=3.5,
-    cond_scale=cond_scale,
-)
+    image = outpaint_controlnet(
+        pipeline,
+        render_img,
+        new_mask,
+        vis=True,
+        prompt=prompt,
+        num_steps=50,
+        guidance_scale=3.5,
+        cond_scale=cond_scale,
+    )
 
-image = image.resize((1024, 1024), Image.LANCZOS)
-image.save(f"imgs/render_in_{idx}.png")
-clear_gpu_memory()
+    image = image.resize((1024, 1024), Image.LANCZOS)
+    image.save(f"imgs/render_in_{idx}.png")
+    clear_gpu_memory()
 
-run_with_conda_env(
-    "diffusers33", f"refiner.py imgs/render_in_{idx}.png --output_path imgs/refined_output_{idx}.png"
-)
-image = Image.open(f"imgs/refined_output_{idx}.png")
+    run_with_conda_env(
+        "diffusers33", f"refiner.py imgs/render_in_{idx}.png --output_path imgs/refined_output_{idx}.png"
+    )
+    image = Image.open(f"imgs/refined_output_{idx}.png")
 
-inital_pano_np = project_perspective_to_equirect(
-    cv2.cvtColor(pil_to_cv2(image), cv2.COLOR_BGR2RGB),
-    initial_pano_np,
-    yaw_deg=view["yaw"],
-    pitch_deg=view["pitch"],
-    h_fov_deg=view["fov"],
-    v_fov_deg=view["fov"],
-    mask=None,  # Original mask - only project where we outpainted,
-    mirror=False,
-)
+    inital_pano_np = project_perspective_to_equirect(
+        cv2.cvtColor(pil_to_cv2(image), cv2.COLOR_BGR2RGB),
+        initial_pano_np,
+        yaw_deg=view["yaw"],
+        pitch_deg=view["pitch"],
+        h_fov_deg=view["fov"],
+        v_fov_deg=view["fov"],
+        mask=None,  # Original mask - only project where we outpainted,
+        mirror=False,
+    )
 
-cur_pano = cv2.cvtColor(inital_pano_np, cv2.COLOR_BGR2RGB)
-cv2.imwrite(f"imgs/cur_pano_initial.png", cur_pano)
+    cur_pano = cv2.cvtColor(inital_pano_np, cv2.COLOR_BGR2RGB)
+    cv2.imwrite(f"imgs/cur_pano_initial.png", cur_pano)
 
 
 
 
 if TOP_BOTTOM_FIRST:
+    print("Processing top and bottom views")
+    cur_pano = Image.open("imgs/cur_pano_initial.png")
     if TOP_BOTTOM_VIEWS:
         for idx, view in tqdm(enumerate(top_and_bottom_views), desc="Processing top and bottom views"):
             if idx == 0:
@@ -188,25 +193,40 @@ if TOP_BOTTOM_FIRST:
             inital_pano = Image.fromarray(initial_pano_np).convert("RGB")
             inital_pano.save(f"imgs/top_bottom_pano_{idx}.png")
 
+idx = len(top_and_bottom_views) - 1
+side_view_pano = Image.open(f"imgs/top_bottom_pano_{idx}.png")
+side_view_pano_np = np.array(side_view_pano)
 
-# side_view_pano = Image.open("imgs/initial_pano_center.png")
-side_view_pano_np = np.array(inital_pano)
+side_view_middle_only = Image.open("imgs/cur_pano_initial.png")
+side_view_middle_only_np = np.array(side_view_middle_only)
 
 
 if SIDE_VIEWS:
+    print("Processing side views")
     for idx, view in enumerate(tqdm(side_views[1:], desc="Processing side views")):
+        if idx == 0 or idx == 4: 
+            mask_img = render_perspective(
+                side_view_middle_only_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
+            )
+            mask = create_mask_from_black(mask_img, threshold=10)
+            new_mask = mask
+            new_mask[:30,:] = 0
+            new_mask[-30:,:] = 0
+        
         render_img = render_perspective(
             side_view_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
         )
+        if idx > 0: 
+            mask = create_mask_from_black(render_img, threshold=10)
+            new_mask = mask
+        #if idx == 0:
+        #    new_mask = fix_inpaint_mask(mask, extend_amount=100)
+        #else:
+        #    new_mask = fix_inpaint_mask(mask, extend_amount=20)
 
-        mask = create_mask_from_black(render_img, threshold=10)
-        if idx == 0:
-            new_mask = fix_inpaint_mask(mask, extend_amount=100)
-        else:
-            new_mask = fix_inpaint_mask(mask, extend_amount=20)
-
+        
         save_mask = Image.fromarray(new_mask).convert("L")
-        save_mask.save(f"new_mask_{idx}.png")
+        save_mask.save(f"imgs/new_mask_{idx}.png")
         render_img = Image.fromarray(render_img).convert("RGB")
         
         prompt = "a new photorealistic house on a market square in 1800s stylex, without people"
@@ -284,7 +304,7 @@ if SIDE_VIEWS:
         cur_pano = cv2.cvtColor(side_view_pano_np, cv2.COLOR_BGR2RGB)
         cv2.imwrite(f"imgs/cur_pano_{idx}.png", cur_pano)
 
-
+'''
 if not TOP_BOTTOM_FIRST:
     cur_pano = Image.open("imgs/top_bottom_pano_10.png")
     initial_pano_np = np.array(cur_pano)
@@ -348,3 +368,4 @@ if not TOP_BOTTOM_FIRST:
         )
         inital_pano = Image.fromarray(initial_pano_np).convert("RGB")
         inital_pano.save(f"imgs/top_bottom_pano_{idx}.png")
+'''
