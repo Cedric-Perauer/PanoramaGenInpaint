@@ -218,13 +218,8 @@ if SIDE_VIEWS:
         )
         if idx > 0: 
             mask = create_mask_from_black(render_img, threshold=10)
-            new_mask = mask
-        #if idx == 0:
-        #    new_mask = fix_inpaint_mask(mask, extend_amount=100)
-        #else:
-        #    new_mask = fix_inpaint_mask(mask, extend_amount=20)
+            new_mask = fix_inpaint_mask(mask, extend_amount=20)
 
-        
         save_mask = Image.fromarray(new_mask).convert("L")
         save_mask.save(f"imgs/new_mask_{idx}.png")
         render_img = Image.fromarray(render_img).convert("RGB")
