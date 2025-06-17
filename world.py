@@ -26,12 +26,12 @@ GEN = False
 USE_SDXL = False
 REFINER = False
 COMPOSITE = False
-TOP_BOTTOM_VIEWS = False
+TOP_BOTTOM_VIEWS = True
 IMAGE_SIZE = 1024
-SIDE_VIEWS = False 
+SIDE_VIEWS = True
 cond_scale = 0.9
-TOP_BOTTOM_FIRST = False
-GEN_FIRST = False
+TOP_BOTTOM_FIRST = True
+GEN_FIRST = False 
 
 if GEN:
     pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-schnell", torch_dtype=torch.bfloat16)
@@ -53,7 +53,7 @@ if GEN:
 all_views_data = vis_inpaint_strategy()
 
 
-top_and_bottom_views = [all_views_data[0], all_views_data[3]]
+top_and_bottom_views = [all_views_data[0],all_views_data[1], all_views_data[3], all_views_data[4]]
 side_views_cp = all_views_data[6:]
 
 
@@ -68,17 +68,14 @@ clear_gpu_memory()
 
 pipeline = load_contolnet_pipeline()
 
-if GEN_FIRST: 
+if GEN_FIRST:
     print("Generating first image")
     inital_pano = Image.open("imgs/initial_pano_center.png")
     initial_pano_np = np.array(inital_pano)
 
-
     idx = 0
     view = side_views[0]
-    render_img = render_perspective(
-                initial_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
-            )
+    render_img = render_perspective(initial_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE)
 
     mask = create_mask_from_black(render_img, threshold=10)
     new_mask = fix_inpaint_mask(mask, extend_amount=100)
@@ -130,16 +127,15 @@ if GEN_FIRST:
 
     cur_pano = cv2.cvtColor(inital_pano_np, cv2.COLOR_BGR2RGB)
     cv2.imwrite(f"imgs/cur_pano_initial.png", cur_pano)
-
-
-
+else : 
+    initial_pano_np = np.array(Image.open("imgs/cur_pano_initial.png"))
 
 if TOP_BOTTOM_FIRST:
     print("Processing top and bottom views")
     cur_pano = Image.open("imgs/cur_pano_initial.png")
     if TOP_BOTTOM_VIEWS:
         for idx, view in tqdm(enumerate(top_and_bottom_views), desc="Processing top and bottom views"):
-            if idx == 0:
+            if idx <= 1:
                 prompt = "floor of a city town square"
             else:
                 prompt = "A Blue sky"
@@ -194,9 +190,14 @@ if TOP_BOTTOM_FIRST:
             inital_pano.save(f"imgs/top_bottom_pano_{idx}.png")
 
 idx = len(top_and_bottom_views) - 1
-side_view_pano = Image.open(f"imgs/top_bottom_pano_{idx}.png")
-side_view_pano_np = np.array(side_view_pano)
 
+if TOP_BOTTOM_VIEWS:
+    side_view_pano = Image.open(f"imgs/top_bottom_pano_{idx}.png")
+
+else:
+    side_view_pano = Image.open("imgs/cur_pano_initial.png")
+
+side_view_pano_np = np.array(side_view_pano)
 side_view_middle_only = Image.open("imgs/cur_pano_initial.png")
 side_view_middle_only_np = np.array(side_view_middle_only)
 
@@ -204,30 +205,28 @@ side_view_middle_only_np = np.array(side_view_middle_only)
 if SIDE_VIEWS:
     print("Processing side views")
     for idx, view in enumerate(tqdm(side_views[1:], desc="Processing side views")):
-        if idx == 0 or idx == 4: 
-            mask_img = render_perspective(
-                side_view_middle_only_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
-            )
-            mask = create_mask_from_black(mask_img, threshold=10)
-            new_mask = mask
-            new_mask[:30,:] = 0
-            new_mask[-30:,:] = 0
-        
+        if TOP_BOTTOM_VIEWS:
+            if idx == 0 or idx == 4:
+                mask_img = render_perspective(
+                    side_view_middle_only_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
+                )
+                mask = create_mask_from_black(mask_img, threshold=10)
+                new_mask = mask
+                new_mask[:30, :] = 0
+                new_mask[-30:, :] = 0
+
         render_img = render_perspective(
             side_view_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
         )
-        if idx > 0: 
+        if idx > 0 or TOP_BOTTOM_VIEWS == False:
             mask = create_mask_from_black(render_img, threshold=10)
             new_mask = fix_inpaint_mask(mask, extend_amount=20)
 
         save_mask = Image.fromarray(new_mask).convert("L")
         save_mask.save(f"imgs/new_mask_{idx}.png")
         render_img = Image.fromarray(render_img).convert("RGB")
-        
-        prompt = "a new photorealistic house on a market square in 1800s stylex, without people"
-        if idx == 1 and TOP_BOTTOM_FIRST:
-            prompt = "a blue region with clouds"
 
+        prompt = "a new photorealistic house on a market square in 1800s stylex, without people"
         print(f"Render image shape: {render_img.size}{mask.shape}")
         render_img.save(f"imgs/render_{idx}.png")
 
@@ -300,67 +299,68 @@ if SIDE_VIEWS:
         cv2.imwrite(f"imgs/cur_pano_{idx}.png", cur_pano)
 
 
-if not TOP_BOTTOM_FIRST:
-    cur_pano = Image.open("imgs/cur_pano_6.png")
-    initial_pano_np = np.array(cur_pano)
-    top_bottom_views = [all_views_data[1], all_views_data[4]]
+if TOP_BOTTOM_VIEWS:
+    if not TOP_BOTTOM_FIRST:
+        cur_pano = Image.open("imgs/cur_pano_6.png")
+        initial_pano_np = np.array(cur_pano)
+        top_bottom_views = [all_views_data[1], all_views_data[4]]
 
-    for cidx, view in tqdm(enumerate(top_bottom_views[:2]), desc="Processing top and bottom views"):
-        idx = cidx + len(side_views) + 3
-        print(f"Processing top and bottom views {idx}")
-        if idx == 0:
-            prompt = "floor of a city town square"
-        else:
-            prompt = "A Blue sky region"
+        for cidx, view in tqdm(enumerate(top_bottom_views[:2]), desc="Processing top and bottom views"):
+            idx = cidx + len(side_views) + 3
+            print(f"Processing top and bottom views {idx}")
+            if idx == 0:
+                prompt = "floor of a city town square"
+            else:
+                prompt = "A Blue sky region"
 
-        render_img = render_perspective(
-            initial_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
-        )
+            render_img = render_perspective(
+                initial_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
+            )
 
-        render_img_pil = cv2_to_pil(render_img)
-        render_img_pil.save(f"imgs/render_in_top_bottom_mask{idx}.png")
-        mask = create_mask_from_black(render_img, threshold=10)
-        cv2_to_pil(mask).save(f"imgs/new_mask_pre_{idx}.png")
-        # new_mask = fix_inpaint_mask(mask, extend_amount=20)
-        extend_amount = 20
-        kernel = np.ones((extend_amount, extend_amount), np.uint8)
-        mask = cv2.dilate(mask, kernel, iterations=1)
+            render_img_pil = cv2_to_pil(render_img)
+            render_img_pil.save(f"imgs/render_in_top_bottom_mask{idx}.png")
+            mask = create_mask_from_black(render_img, threshold=10)
+            cv2_to_pil(mask).save(f"imgs/new_mask_pre_{idx}.png")
+            # new_mask = fix_inpaint_mask(mask, extend_amount=20)
+            extend_amount = 20
+            kernel = np.ones((extend_amount, extend_amount), np.uint8)
+            mask = cv2.dilate(mask, kernel, iterations=1)
 
-        new_mask = mask
-        cv2_to_pil(new_mask).save(f"imgs/new_mask_{idx}.png")
-        render_img = cv2.cvtColor(render_img, cv2.COLOR_BGR2RGB)
-        # render_img = cv2.cvtColor(view["render"], cv2.COLOR_BGR2RGB)
-        render_img = cv2_to_pil(render_img)
-        print(f"Render image shape: {render_img.size}{mask.shape}")
-        render_img.save(f"imgs/render_in_top_bottom_{idx}.png")
-        cond_scale = 0.7
-        image = outpaint_controlnet(
-            pipeline,
-            render_img,
-            new_mask,
-            vis=True,
-            prompt=prompt,
-            num_steps=50,
-            guidance_scale=3.5,
-            cond_scale=cond_scale,
-        )
-        image = image.resize((1024, 1024), Image.LANCZOS)
-        image.save(f"imgs/render_top_bottom_out_{idx}.png")
-        yaw_deg = view["yaw"]
+            new_mask = mask
+            cv2_to_pil(new_mask).save(f"imgs/new_mask_{idx}.png")
+            render_img = cv2.cvtColor(render_img, cv2.COLOR_BGR2RGB)
+            # render_img = cv2.cvtColor(view["render"], cv2.COLOR_BGR2RGB)
+            render_img = cv2_to_pil(render_img)
+            print(f"Render image shape: {render_img.size}{mask.shape}")
+            render_img.save(f"imgs/render_in_top_bottom_{idx}.png")
+            cond_scale = 0.7
+            image = outpaint_controlnet(
+                pipeline,
+                render_img,
+                new_mask,
+                vis=True,
+                prompt=prompt,
+                num_steps=50,
+                guidance_scale=3.5,
+                cond_scale=cond_scale,
+            )
+            image = image.resize((1024, 1024), Image.LANCZOS)
+            image.save(f"imgs/render_top_bottom_out_{idx}.png")
+            yaw_deg = view["yaw"]
 
-        #if cidx == 0:
-        #    yaw_deg = -view["yaw"]
-        #else:
-        #    yaw_deg = view["yaw"]
+            # if cidx == 0:
+            #    yaw_deg = -view["yaw"]
+            # else:
+            #    yaw_deg = view["yaw"]
 
-        inital_pano_np = project_perspective_to_equirect(
-            cv2.cvtColor(pil_to_cv2(image), cv2.COLOR_BGR2RGB),
-            initial_pano_np,
-            yaw_deg=yaw_deg,
-            pitch_deg=view["pitch"],
-            h_fov_deg=view["fov"],
-            v_fov_deg=view["fov"],
-            mask=new_mask,
-        )
-        inital_pano = Image.fromarray(initial_pano_np).convert("RGB")
-        inital_pano.save(f"imgs/top_bottom_pano_{idx}.png")
+            inital_pano_np = project_perspective_to_equirect(
+                cv2.cvtColor(pil_to_cv2(image), cv2.COLOR_BGR2RGB),
+                initial_pano_np,
+                yaw_deg=yaw_deg,
+                pitch_deg=view["pitch"],
+                h_fov_deg=view["fov"],
+                v_fov_deg=view["fov"],
+                mask=new_mask,
+            )
+            inital_pano = Image.fromarray(initial_pano_np).convert("RGB")
+            inital_pano.save(f"imgs/top_bottom_pano_{idx}.png")

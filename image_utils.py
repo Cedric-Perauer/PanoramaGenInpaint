@@ -428,9 +428,10 @@ def visualize_all_inpainting_masks(initial_panorama, side_pano, output_size=1024
             # looking up
             "params": [
                 (0, -60),
-                # (180,-60),
-                (130, -60),
-                (230, -60),
+                (180,-60),
+
+                #(130, -60),
+                #(230, -60),
             ],
             "wraps": [False, True],
             "fov": 120.0,
@@ -439,7 +440,8 @@ def visualize_all_inpainting_masks(initial_panorama, side_pano, output_size=1024
         # What was labeled "Top" is actually showing bottom views
         "Bottom": {
             # Positive pitch actually looks down in render_perspective
-            "params": [(0, 60), (130, 60), (230, 60)],
+            "params": [(0, 60), (180, 60)],
+                       #(130, 60), (230, 60)],
             "fov": 120.0,
             "color": [0, 180, 50],  # Greenish
         },
