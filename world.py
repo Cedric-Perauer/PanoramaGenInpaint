@@ -28,7 +28,7 @@ REFINER = False
 COMPOSITE = False
 TOP_BOTTOM_VIEWS = False
 IMAGE_SIZE = 1024
-SIDE_VIEWS = True
+SIDE_VIEWS = False 
 cond_scale = 0.9
 TOP_BOTTOM_FIRST = False
 GEN_FIRST = False
@@ -299,19 +299,19 @@ if SIDE_VIEWS:
         cur_pano = cv2.cvtColor(side_view_pano_np, cv2.COLOR_BGR2RGB)
         cv2.imwrite(f"imgs/cur_pano_{idx}.png", cur_pano)
 
-'''
-if not TOP_BOTTOM_FIRST:
-    cur_pano = Image.open("imgs/top_bottom_pano_10.png")
-    initial_pano_np = np.array(cur_pano)
-    top_bottom_views = all_views_data[3:5]
 
-    for cidx, view in tqdm(enumerate(top_bottom_views), desc="Processing top and bottom views"):
+if not TOP_BOTTOM_FIRST:
+    cur_pano = Image.open("imgs/cur_pano_6.png")
+    initial_pano_np = np.array(cur_pano)
+    top_bottom_views = [all_views_data[1], all_views_data[4]]
+
+    for cidx, view in tqdm(enumerate(top_bottom_views[:2]), desc="Processing top and bottom views"):
         idx = cidx + len(side_views) + 3
         print(f"Processing top and bottom views {idx}")
-        # if cidx < 3:
-        #    prompt = "floor of a city town square"
-        # else:
-        prompt = "A Blue sky region with a tree"
+        if idx == 0:
+            prompt = "floor of a city town square"
+        else:
+            prompt = "A Blue sky region"
 
         render_img = render_perspective(
             initial_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
@@ -346,11 +346,12 @@ if not TOP_BOTTOM_FIRST:
         )
         image = image.resize((1024, 1024), Image.LANCZOS)
         image.save(f"imgs/render_top_bottom_out_{idx}.png")
+        yaw_deg = view["yaw"]
 
-        if cidx == 0:
-            yaw_deg = -view["yaw"]
-        else:
-            yaw_deg = view["yaw"]
+        #if cidx == 0:
+        #    yaw_deg = -view["yaw"]
+        #else:
+        #    yaw_deg = view["yaw"]
 
         inital_pano_np = project_perspective_to_equirect(
             cv2.cvtColor(pil_to_cv2(image), cv2.COLOR_BGR2RGB),
@@ -363,4 +364,3 @@ if not TOP_BOTTOM_FIRST:
         )
         inital_pano = Image.fromarray(initial_pano_np).convert("RGB")
         inital_pano.save(f"imgs/top_bottom_pano_{idx}.png")
-'''
