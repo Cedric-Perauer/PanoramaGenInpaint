@@ -31,7 +31,7 @@ IMAGE_SIZE = 1024
 SIDE_VIEWS = True
 cond_scale = 0.9
 TOP_BOTTOM_FIRST = True
-GEN_FIRST = False 
+GEN_FIRST = False
 
 if GEN:
     pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-schnell", torch_dtype=torch.bfloat16)
@@ -53,7 +53,7 @@ if GEN:
 all_views_data = vis_inpaint_strategy()
 
 
-top_and_bottom_views = [all_views_data[0],all_views_data[1], all_views_data[3], all_views_data[4]]
+top_and_bottom_views = [all_views_data[0], all_views_data[1], all_views_data[2], all_views_data[3]]
 side_views_cp = all_views_data[6:]
 
 
@@ -127,7 +127,7 @@ if GEN_FIRST:
 
     cur_pano = cv2.cvtColor(inital_pano_np, cv2.COLOR_BGR2RGB)
     cv2.imwrite(f"imgs/cur_pano_initial.png", cur_pano)
-else : 
+else:
     initial_pano_np = np.array(Image.open("imgs/cur_pano_initial.png"))
 
 if TOP_BOTTOM_FIRST:
