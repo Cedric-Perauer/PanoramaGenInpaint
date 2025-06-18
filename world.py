@@ -202,13 +202,13 @@ if SIDE_VIEWS:
     print("Processing side views")
     for idx, view in enumerate(tqdm(side_views[1:], desc="Processing side views")):
         if TOP_BOTTOM_VIEWS:
-                mask_img = render_perspective(
-                    side_view_middle_only_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
-                )
-                mask = create_mask_from_black(mask_img, threshold=10)
-                new_mask = mask
-                new_mask[:30, :] = 0
-                new_mask[-30:, :] = 0
+            mask_img = render_perspective(
+                side_view_middle_only_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
+            )
+            mask = create_mask_from_black(mask_img, threshold=10)
+            new_mask = mask
+            new_mask[:80, :] = 0
+            new_mask[-80:, :] = 0
 
         render_img = render_perspective(
             side_view_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
@@ -286,7 +286,7 @@ if SIDE_VIEWS:
             mask=cur_mask,  # Original mask - only project where we outpainted,
             mirror=False,
         )
-        
+
         side_view_middle_only_np = project_perspective_to_equirect(
             cv2.cvtColor(pil_to_cv2(image), cv2.COLOR_BGR2RGB),
             side_view_middle_only_np,
