@@ -33,6 +33,9 @@ cond_scale = 0.9
 TOP_BOTTOM_FIRST = True
 GEN_FIRST = False
 
+GEN_TOP_BOTTOM = False
+
+
 if GEN:
     pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-schnell", torch_dtype=torch.bfloat16)
     pipe.enable_model_cpu_offload()
@@ -53,14 +56,9 @@ if GEN:
 all_views_data = vis_inpaint_strategy()
 
 
-top_and_bottom_views = [all_views_data[0], all_views_data[1], all_views_data[2], all_views_data[3]]
-side_views_cp = all_views_data[6:]
+top_and_bottom_views = all_views_data[:4]
+side_views = all_views_data[4:]
 
-
-if TOP_BOTTOM_FIRST:
-    side_views = [side_views_cp[0], top_and_bottom_views[1]] + side_views_cp[1:]
-else:
-    side_views = side_views_cp
 
 right_side_nums = []
 left_side_nums = []
@@ -130,7 +128,7 @@ if GEN_FIRST:
 else:
     initial_pano_np = np.array(Image.open("imgs/cur_pano_initial.png"))
 
-if TOP_BOTTOM_FIRST:
+if TOP_BOTTOM_FIRST and GEN_TOP_BOTTOM:
     print("Processing top and bottom views")
     cur_pano = Image.open("imgs/cur_pano_initial.png")
     if TOP_BOTTOM_VIEWS:
@@ -174,9 +172,6 @@ if TOP_BOTTOM_FIRST:
                 image = Image.open(f"imgs/refined_top_bottom_{idx}.png")
             """
 
-            # if idx == 0:
-            #    new_mask = None
-
             inital_pano_np = project_perspective_to_equirect(
                 cv2.cvtColor(pil_to_cv2(image), cv2.COLOR_BGR2RGB),
                 initial_pano_np,
@@ -191,7 +186,8 @@ if TOP_BOTTOM_FIRST:
 
 idx = len(top_and_bottom_views) - 1
 
-if TOP_BOTTOM_VIEWS:
+if TOP_BOTTOM_FIRST:
+    print("Processing side views from top bottom load")
     side_view_pano = Image.open(f"imgs/top_bottom_pano_{idx}.png")
 
 else:
@@ -206,7 +202,6 @@ if SIDE_VIEWS:
     print("Processing side views")
     for idx, view in enumerate(tqdm(side_views[1:], desc="Processing side views")):
         if TOP_BOTTOM_VIEWS:
-            if idx == 0 or idx == 4:
                 mask_img = render_perspective(
                     side_view_middle_only_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
                 )
@@ -218,7 +213,7 @@ if SIDE_VIEWS:
         render_img = render_perspective(
             side_view_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
         )
-        if idx > 0 or TOP_BOTTOM_VIEWS == False:
+        if TOP_BOTTOM_VIEWS == False:
             mask = create_mask_from_black(render_img, threshold=10)
             new_mask = fix_inpaint_mask(mask, extend_amount=20)
 
@@ -230,9 +225,6 @@ if SIDE_VIEWS:
         print(f"Render image shape: {render_img.size}{mask.shape}")
         render_img.save(f"imgs/render_{idx}.png")
 
-        # if idx == 0:
-        #    cond_scale = 0.4
-        # else:
         cond_scale = 0.9
 
         image = outpaint_controlnet(
@@ -287,6 +279,17 @@ if SIDE_VIEWS:
         side_view_pano_np = project_perspective_to_equirect(
             cv2.cvtColor(pil_to_cv2(image), cv2.COLOR_BGR2RGB),
             side_view_pano_np,
+            yaw_deg=view["yaw"],
+            pitch_deg=view["pitch"],
+            h_fov_deg=view["fov"],
+            v_fov_deg=view["fov"],
+            mask=cur_mask,  # Original mask - only project where we outpainted,
+            mirror=False,
+        )
+        
+        side_view_middle_only_np = project_perspective_to_equirect(
+            cv2.cvtColor(pil_to_cv2(image), cv2.COLOR_BGR2RGB),
+            side_view_middle_only_np,
             yaw_deg=view["yaw"],
             pitch_deg=view["pitch"],
             h_fov_deg=view["fov"],
