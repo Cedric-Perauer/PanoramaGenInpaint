@@ -111,6 +111,43 @@ def vis_inpaint_strategy(vis=False):
         print(f"An error occurred: {e}")
 
 
+def fix_mask_region(mask, extension=0):
+    """
+    Extract the largest white region from a mask and optionally extend it.
+    
+    Args:
+        mask: Input mask image (grayscale or BGR)
+        extension: Number of pixels to extend the mask region (default: 0)
+        
+    Returns:
+        numpy.ndarray: Binary mask with only the largest white region, optionally extended
+    """
+    if mask.shape[-1] == 3:
+        mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+    _, binary = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY)
+
+    # Find contours
+    contours, _ = cv2.findContours(binary.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Find the largest contour by area
+    if contours:
+        largest_contour = max(contours, key=cv2.contourArea)
+        # Create an empty mask
+        largest_mask = np.zeros_like(binary)
+        # Draw the largest contour filled in white
+        cv2.drawContours(largest_mask, [largest_contour], -1, 255, thickness=cv2.FILLED)
+        
+        # Extend the mask if extension > 0
+        if extension > 0:
+            kernel = np.ones((extension, extension), np.uint8) * 255
+            largest_mask = cv2.dilate(largest_mask, kernel, iterations=1)
+        
+        return largest_mask
+    else:
+        # Return empty mask if no contours found
+        return np.zeros_like(binary)
+
+
 def fix_inpaint_mask(mask, contour_color=(0, 255, 0), fill_color=(0, 0, 0), extend_amount=100, mode=None, side="r"):
     mask_copy = mask.copy()
     if mask_copy.dtype != np.uint8:

@@ -12,6 +12,7 @@ from diffusion_utils import (
     generate_outpaint,
     fix_mask,
     fix_inpaint_mask,
+    fix_mask_region,
     vis_inpaint_strategy,
     load_contolnet_pipeline,
     outpaint_controlnet,
@@ -195,6 +196,7 @@ else:
 
 side_view_pano_np = np.array(side_view_pano)
 side_view_middle_only = Image.open("imgs/cur_pano_initial.png")
+#side_view_middle_only = Image.open("imgs/cur_pano_5.png")
 side_view_middle_only_np = np.array(side_view_middle_only)
 
 
@@ -216,7 +218,12 @@ if SIDE_VIEWS:
         if TOP_BOTTOM_VIEWS == False:
             mask = create_mask_from_black(render_img, threshold=10)
             new_mask = fix_inpaint_mask(mask, extend_amount=20)
-
+        
+        extension = 20 
+        if idx == 6:
+            extension = 100    
+        
+        new_mask = fix_mask_region(mask,extension=extension)
         save_mask = Image.fromarray(new_mask).convert("L")
         save_mask.save(f"imgs/new_mask_{idx}.png")
         render_img = Image.fromarray(render_img).convert("RGB")
