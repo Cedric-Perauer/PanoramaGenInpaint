@@ -114,11 +114,11 @@ def vis_inpaint_strategy(vis=False):
 def fix_mask_region(mask, extension=0):
     """
     Extract the largest white region from a mask and optionally extend it.
-    
+
     Args:
         mask: Input mask image (grayscale or BGR)
         extension: Number of pixels to extend the mask region (default: 0)
-        
+
     Returns:
         numpy.ndarray: Binary mask with only the largest white region, optionally extended
     """
@@ -136,12 +136,12 @@ def fix_mask_region(mask, extension=0):
         largest_mask = np.zeros_like(binary)
         # Draw the largest contour filled in white
         cv2.drawContours(largest_mask, [largest_contour], -1, 255, thickness=cv2.FILLED)
-        
+
         # Extend the mask if extension > 0
         if extension > 0:
             kernel = np.ones((extension, extension), np.uint8) * 255
             largest_mask = cv2.dilate(largest_mask, kernel, iterations=1)
-        
+
         return largest_mask
     else:
         # Return empty mask if no contours found

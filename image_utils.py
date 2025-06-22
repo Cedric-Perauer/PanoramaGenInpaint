@@ -5,6 +5,7 @@ import math
 from PIL import Image
 import matplotlib.pyplot as plt
 import torch
+from laplacian_pyramid import *
 
 
 def focal_to_fov(focal_length, sensor_dimension):
@@ -606,7 +607,19 @@ def project_perspective_to_equirect(
         eq_x_valid[eq_x_valid < 0] = 0
         eq_x_valid[eq_x_valid >= eq_w] = eq_w - 1
 
-    equirect_target[fixed_eq_valid, eq_x_valid] = perspective_image[persp_v_int, persp_u_int]
+    mask = np.zeros((eq_h, eq_w, 1), dtype=float)
+    mask[fixed_eq_valid, eq_x_valid] = 1
+    equirect_target = perform_laplacian_blending(equirect_target, perspective_image, mask)
+    #equirect_target[fixed_eq_valid, eq_x_valid] = perspective_image[persp_v_int, persp_u_int]
+    
 
     print(f"Projected {len(eq_y_valid)} pixels from perspective to equirect with yaw={yaw_deg}, pitch={pitch_deg}")
     return equirect_target
+
+def perform_laplacian_blending(image1, image2, mask):
+    depth = 5
+    L1 = laplacian_pyramid(image1, depth)
+    L2 = laplacian_pyramid(image2, depth)
+    G = gaussian_pyramid(mask, depth)
+    LS = combine(L1, L2, G)
+    return collapse(LS, depth).astype(np.uint8)
