@@ -35,6 +35,7 @@ TOP_BOTTOM_FIRST = True
 GEN_FIRST = False
 
 GEN_TOP_BOTTOM = False
+LAPLACIAN_BLENDING = False
 
 
 if GEN:
@@ -371,6 +372,7 @@ if TOP_BOTTOM_VIEWS:
                 h_fov_deg=view["fov"],
                 v_fov_deg=view["fov"],
                 mask=new_mask,
+                laplacian_blending=LAPLACIAN_BLENDING,
             )
             inital_pano = Image.fromarray(initial_pano_np).convert("RGB")
             inital_pano.save(f"imgs/top_bottom_pano_{idx}.png")

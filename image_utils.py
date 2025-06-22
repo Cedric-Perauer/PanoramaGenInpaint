@@ -6,7 +6,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import torch
 from laplacian_pyramid import *
-
+import copy
 
 def focal_to_fov(focal_length, sensor_dimension):
     """Convert focal length to field of view in degrees"""
@@ -511,7 +511,7 @@ def visualize_all_inpainting_masks(initial_panorama, side_pano, output_size=1024
 
 
 def project_perspective_to_equirect(
-    perspective_image, equirect_target, yaw_deg, pitch_deg, h_fov_deg, v_fov_deg, mask=None, mirror=False, wrap_x=True
+    perspective_image, equirect_target, yaw_deg, pitch_deg, h_fov_deg, v_fov_deg, mask=None, mirror=False, wrap_x=True, laplacian_blending=False
 ):
     """
     Projects a perspective image back onto an equirectangular panorama.
@@ -607,13 +607,14 @@ def project_perspective_to_equirect(
         eq_x_valid[eq_x_valid < 0] = 0
         eq_x_valid[eq_x_valid >= eq_w] = eq_w - 1
 
-    mask = np.zeros((eq_h, eq_w, 1), dtype=float)
-    mask[fixed_eq_valid, eq_x_valid] = 1
-    equirect_target = perform_laplacian_blending(equirect_target, perspective_image, mask)
-    #equirect_target[fixed_eq_valid, eq_x_valid] = perspective_image[persp_v_int, persp_u_int]
-    
 
-    print(f"Projected {len(eq_y_valid)} pixels from perspective to equirect with yaw={yaw_deg}, pitch={pitch_deg}")
+    equirect_before = copy.deepcopy(equirect_target)
+    equirect_target[fixed_eq_valid, eq_x_valid] = perspective_image[persp_v_int, persp_u_int]
+    if laplacian_blending:
+        mask = np.zeros((eq_h, eq_w, 1), dtype=float)
+        mask[fixed_eq_valid, eq_x_valid] = 1
+        equirect_target = perform_laplacian_blending(equirect_target, equirect_before, mask)
+        print(f"Projected {len(eq_y_valid)} pixels from perspective to equirect with yaw={yaw_deg}, pitch={pitch_deg}")
     return equirect_target
 
 def perform_laplacian_blending(image1, image2, mask):
