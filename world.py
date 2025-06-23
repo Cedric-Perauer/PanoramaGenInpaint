@@ -35,8 +35,8 @@ TOP_BOTTOM_FIRST = True
 GEN_FIRST = False
 
 GEN_TOP_BOTTOM = False
-LAPLACIAN_BLENDING = False
-
+LAPLACIAN_BLENDING = False 
+BLUR_BLENDING = True
 
 if GEN:
     pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-schnell", torch_dtype=torch.bfloat16)
@@ -225,7 +225,7 @@ if SIDE_VIEWS:
             extension = 100
 
         new_mask = fix_mask_region(mask, extension=extension)
-        save_mask = Image.fromarray(new_mask).convert("L")
+        save_mask = Image.fromarray(new_mask).convert("L") 
         save_mask.save(f"imgs/new_mask_{idx}.png")
         render_img = Image.fromarray(render_img).convert("RGB")
 
@@ -282,8 +282,8 @@ if SIDE_VIEWS:
 
         new_mask = np.array(new_mask)
         cur_mask = new_mask
-        # if idx == 0:
-        #    cur_mask = None
+        if idx == 0:
+            cur_mask = None
         side_view_pano_np = project_perspective_to_equirect(
             cv2.cvtColor(pil_to_cv2(image), cv2.COLOR_BGR2RGB),
             side_view_pano_np,
@@ -373,6 +373,7 @@ if TOP_BOTTOM_VIEWS:
                 v_fov_deg=view["fov"],
                 mask=new_mask,
                 laplacian_blending=LAPLACIAN_BLENDING,
+                blur_blending=BLUR_BLENDING,
             )
             inital_pano = Image.fromarray(initial_pano_np).convert("RGB")
             inital_pano.save(f"imgs/top_bottom_pano_{idx}.png")

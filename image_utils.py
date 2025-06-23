@@ -511,7 +511,7 @@ def visualize_all_inpainting_masks(initial_panorama, side_pano, output_size=1024
 
 
 def project_perspective_to_equirect(
-    perspective_image, equirect_target, yaw_deg, pitch_deg, h_fov_deg, v_fov_deg, mask=None, mirror=False, wrap_x=True, laplacian_blending=False
+    perspective_image, equirect_target, yaw_deg, pitch_deg, h_fov_deg, v_fov_deg, mask=None, mirror=False, wrap_x=True, laplacian_blending=False, blur_blending=False
 ):
     """
     Projects a perspective image back onto an equirectangular panorama.
@@ -615,6 +615,16 @@ def project_perspective_to_equirect(
         mask[fixed_eq_valid, eq_x_valid] = 1
         equirect_target = perform_laplacian_blending(equirect_target, equirect_before, mask)
         print(f"Projected {len(eq_y_valid)} pixels from perspective to equirect with yaw={yaw_deg}, pitch={pitch_deg}")
+    if blur_blending: 
+        mask = np.zeros((eq_h, eq_w, 1), dtype=float)
+        mask[fixed_eq_valid, eq_x_valid] = 255
+        mask = cv2.blur(mask, (30,30))
+        mask = cv2.normalize(mask, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+        maskf = (mask/255).astype(np.float64)
+        maskf = cv2.merge([maskf,maskf,maskf])
+        equirect_target = maskf*equirect_target + (1-maskf)*equirect_before
+        equirect_target = equirect_target.clip(0,255).astype(np.uint8)
+        
     return equirect_target
 
 def perform_laplacian_blending(image1, image2, mask):
