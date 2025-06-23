@@ -618,8 +618,10 @@ def project_perspective_to_equirect(
     if blur_blending: 
         mask = np.zeros((eq_h, eq_w, 1), dtype=float)
         mask[fixed_eq_valid, eq_x_valid] = 255
-        mask = cv2.blur(mask, (30,30))
+        mask = cv2.blur(mask, (100,100))
         mask = cv2.normalize(mask, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+        cv2.imwrite("mask.png", mask)
+        
         maskf = (mask/255).astype(np.float64)
         maskf = cv2.merge([maskf,maskf,maskf])
         equirect_target = maskf*equirect_target + (1-maskf)*equirect_before

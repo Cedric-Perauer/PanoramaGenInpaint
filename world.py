@@ -292,6 +292,7 @@ if SIDE_VIEWS:
             h_fov_deg=view["fov"],
             v_fov_deg=view["fov"],
             mask=cur_mask,  # Original mask - only project where we outpainted,
+            blur_blending=BLUR_BLENDING,
             mirror=False,
         )
 
@@ -303,6 +304,7 @@ if SIDE_VIEWS:
             h_fov_deg=view["fov"],
             v_fov_deg=view["fov"],
             mask=cur_mask,  # Original mask - only project where we outpainted,
+            blur_blending=BLUR_BLENDING,
             mirror=False,
         )
 
