@@ -210,7 +210,7 @@ if SIDE_VIEWS:
             )
             mask = create_mask_from_black(mask_img, threshold=10)
             new_mask = mask
-            new_mask[:150, :] = 0
+            new_mask[:135, :] = 0
             new_mask[-80:, :] = 0
 
         render_img = render_perspective(
@@ -263,8 +263,11 @@ if SIDE_VIEWS:
             outpainted_np = cv2.resize(outpainted_np, (mask_array.shape[1], mask_array.shape[0]))
             rendered_np = cv2.resize(rendered_np, (mask_array.shape[1], mask_array.shape[0]))
             
+            cv2.imwrite('outpainted_np.png', outpainted_np)
+            cv2.imwrite('rendered_np.png', rendered_np)
+            #cv2.imwrite('mask_array.png', mask_array)
             # Apply Gaussian blur to the mask array
-            mask_array = cv2.blur(mask_array, (20,20))  
+            mask_array = cv2.blur(mask_array, (5,5))  
             
             # Ensure mask is in the right format for broadcasting
             maskf = cv2.merge([mask_array, mask_array, mask_array])
