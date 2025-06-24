@@ -2,3 +2,7 @@ pip install torch torchvision
 pip install diffusers==0.30.2
 pip install autopep8
 pip install pre-commit
+pip install transformers
+pip install accelerate
+pip install peft
+pip install torchao

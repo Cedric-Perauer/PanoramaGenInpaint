@@ -5,7 +5,8 @@ import math
 from PIL import Image
 import matplotlib.pyplot as plt
 import torch
-
+from laplacian_pyramid import *
+import copy
 
 def focal_to_fov(focal_length, sensor_dimension):
     """Convert focal length to field of view in degrees"""
@@ -428,9 +429,9 @@ def visualize_all_inpainting_masks(initial_panorama, side_pano, output_size=1024
             # looking up
             "params": [
                 (0, -60),
-                # (180,-60),
-                (130, -60),
-                (230, -60),
+                (180, -60),
+                # (130, -60),
+                # (230, -60),
             ],
             "wraps": [False, True],
             "fov": 120.0,
@@ -439,7 +440,8 @@ def visualize_all_inpainting_masks(initial_panorama, side_pano, output_size=1024
         # What was labeled "Top" is actually showing bottom views
         "Bottom": {
             # Positive pitch actually looks down in render_perspective
-            "params": [(0, 60), (130, 60), (230, 60)],
+            "params": [(0, 60), (180, 60)],
+            # (130, 60), (230, 60)],
             "fov": 120.0,
             "color": [0, 180, 50],  # Greenish
         },
@@ -509,7 +511,7 @@ def visualize_all_inpainting_masks(initial_panorama, side_pano, output_size=1024
 
 
 def project_perspective_to_equirect(
-    perspective_image, equirect_target, yaw_deg, pitch_deg, h_fov_deg, v_fov_deg, mask=None, mirror=False, wrap_x=True
+    perspective_image, equirect_target, yaw_deg, pitch_deg, h_fov_deg, v_fov_deg, mask=None, mirror=False, wrap_x=True, laplacian_blending=False, blur_blending=False
 ):
     """
     Projects a perspective image back onto an equirectangular panorama.
@@ -555,9 +557,17 @@ def project_perspective_to_equirect(
     world_z = cam_z
 
     # Project onto camera plane
-    valid_mask_geom = world_z > 1e-6  # Points in front of the camera
-    persp_ndc_x = world_x / world_z
-    persp_ndc_y = world_y / world_z
+    # Use a more robust threshold to avoid divide by zero
+    valid_mask_geom = world_z > 1e-8  # Increased threshold for better numerical stability
+    
+    # Safe division with masking to avoid warnings
+    persp_ndc_x = np.zeros_like(world_x)
+    persp_ndc_y = np.zeros_like(world_y)
+    
+    # Only compute division where world_z is valid
+    valid_indices = valid_mask_geom
+    persp_ndc_x[valid_indices] = world_x[valid_indices] / world_z[valid_indices]
+    persp_ndc_y[valid_indices] = world_y[valid_indices] / world_z[valid_indices]
 
     # Map to pixel coordinates in the perspective image
     persp_u = (persp_ndc_x / np.tan(h_fov / 2) + 1) * 0.5 * persp_w
@@ -605,7 +615,36 @@ def project_perspective_to_equirect(
         eq_x_valid[eq_x_valid < 0] = 0
         eq_x_valid[eq_x_valid >= eq_w] = eq_w - 1
 
-    equirect_target[fixed_eq_valid, eq_x_valid] = perspective_image[persp_v_int, persp_u_int]
 
-    print(f"Projected {len(eq_y_valid)} pixels from perspective to equirect with yaw={yaw_deg}, pitch={pitch_deg}")
+    equirect_before = copy.deepcopy(equirect_target)
+    equirect_target[fixed_eq_valid, eq_x_valid] = perspective_image[persp_v_int, persp_u_int]
+    if laplacian_blending:
+        mask = np.zeros((eq_h, eq_w, 1), dtype=float)
+        mask[fixed_eq_valid, eq_x_valid] = 1
+        equirect_target = perform_laplacian_blending(equirect_target, equirect_before, mask)
+        print(f"Projected {len(eq_y_valid)} pixels from perspective to equirect with yaw={yaw_deg}, pitch={pitch_deg}")
+    if blur_blending: 
+        mask = np.zeros((eq_h, eq_w, 1), dtype=float)
+        mask[fixed_eq_valid, eq_x_valid] = 255
+        
+        # Apply multiple blur passes for smoother transitions
+        # First pass: large Gaussian blur for overall smoothness
+        mask = cv2.blur(mask, (50,50))
+        # Normalize the mask
+        mask = cv2.normalize(mask, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+        cv2.imwrite("mask.png", mask)
+        
+        maskf = (mask/255).astype(np.float64)
+        maskf = cv2.merge([maskf,maskf,maskf])
+        equirect_target = maskf*equirect_target + (1-maskf)*equirect_before
+        equirect_target = equirect_target.clip(0,255).astype(np.uint8)
+        
     return equirect_target
+
+def perform_laplacian_blending(image1, image2, mask):
+    depth = 5
+    L1 = laplacian_pyramid(image1, depth)
+    L2 = laplacian_pyramid(image2, depth)
+    G = gaussian_pyramid(mask, depth)
+    LS = combine(L1, L2, G)
+    return collapse(LS, depth).astype(np.uint8)
