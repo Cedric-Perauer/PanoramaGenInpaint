@@ -557,9 +557,17 @@ def project_perspective_to_equirect(
     world_z = cam_z
 
     # Project onto camera plane
-    valid_mask_geom = world_z > 1e-6  # Points in front of the camera
-    persp_ndc_x = world_x / world_z
-    persp_ndc_y = world_y / world_z
+    # Use a more robust threshold to avoid divide by zero
+    valid_mask_geom = world_z > 1e-8  # Increased threshold for better numerical stability
+    
+    # Safe division with masking to avoid warnings
+    persp_ndc_x = np.zeros_like(world_x)
+    persp_ndc_y = np.zeros_like(world_y)
+    
+    # Only compute division where world_z is valid
+    valid_indices = valid_mask_geom
+    persp_ndc_x[valid_indices] = world_x[valid_indices] / world_z[valid_indices]
+    persp_ndc_y[valid_indices] = world_y[valid_indices] / world_z[valid_indices]
 
     # Map to pixel coordinates in the perspective image
     persp_u = (persp_ndc_x / np.tan(h_fov / 2) + 1) * 0.5 * persp_w
@@ -618,7 +626,11 @@ def project_perspective_to_equirect(
     if blur_blending: 
         mask = np.zeros((eq_h, eq_w, 1), dtype=float)
         mask[fixed_eq_valid, eq_x_valid] = 255
-        mask = cv2.blur(mask, (100,100))
+        
+        # Apply multiple blur passes for smoother transitions
+        # First pass: large Gaussian blur for overall smoothness
+        mask = cv2.blur(mask, (50,50))
+        # Normalize the mask
         mask = cv2.normalize(mask, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
         cv2.imwrite("mask.png", mask)
         

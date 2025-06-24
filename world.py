@@ -26,7 +26,7 @@ from tqdm import tqdm
 GEN = False
 USE_SDXL = False
 REFINER = False
-COMPOSITE = False
+COMPOSITE = True
 TOP_BOTTOM_VIEWS = True
 IMAGE_SIZE = 1024
 SIDE_VIEWS = True
@@ -210,7 +210,7 @@ if SIDE_VIEWS:
             )
             mask = create_mask_from_black(mask_img, threshold=10)
             new_mask = mask
-            new_mask[:80, :] = 0
+            new_mask[:150, :] = 0
             new_mask[-80:, :] = 0
 
         render_img = render_perspective(
@@ -253,6 +253,7 @@ if SIDE_VIEWS:
             # mask
             mask_array = np.array(new_mask)
             mask_array = mask_array.astype(np.float32) / 255.0  # Normalize to 0-1
+            
 
             # Convert images to numpy arrays
             outpainted_np = np.array(image)
@@ -261,10 +262,16 @@ if SIDE_VIEWS:
             # Resize outpainted image to match mask dimensions
             outpainted_np = cv2.resize(outpainted_np, (mask_array.shape[1], mask_array.shape[0]))
             rendered_np = cv2.resize(rendered_np, (mask_array.shape[1], mask_array.shape[0]))
-            mask_array = np.expand_dims(mask_array, axis=2)  # Add channel dimension
-
-            # Composite using the mask
-            composite = outpainted_np * mask_array + rendered_np * (1 - mask_array)
+            
+            # Apply Gaussian blur to the mask array
+            mask_array = cv2.blur(mask_array, (20,20))  
+            
+            # Ensure mask is in the right format for broadcasting
+            maskf = cv2.merge([mask_array, mask_array, mask_array])
+            
+            composite = maskf*outpainted_np + (1-maskf)*rendered_np
+            composite = composite.clip(0,255).astype(np.uint8)
+            
             image = Image.fromarray(composite.astype(np.uint8))
 
             image = image.resize((1024, 1024), Image.LANCZOS)
@@ -282,8 +289,6 @@ if SIDE_VIEWS:
 
         new_mask = np.array(new_mask)
         cur_mask = new_mask
-        if idx == 0:
-            cur_mask = None
         side_view_pano_np = project_perspective_to_equirect(
             cv2.cvtColor(pil_to_cv2(image), cv2.COLOR_BGR2RGB),
             side_view_pano_np,
@@ -293,6 +298,7 @@ if SIDE_VIEWS:
             v_fov_deg=view["fov"],
             mask=cur_mask,  # Original mask - only project where we outpainted,
             blur_blending=BLUR_BLENDING,
+            laplacian_blending=LAPLACIAN_BLENDING,
             mirror=False,
         )
 
@@ -305,6 +311,7 @@ if SIDE_VIEWS:
             v_fov_deg=view["fov"],
             mask=cur_mask,  # Original mask - only project where we outpainted,
             blur_blending=BLUR_BLENDING,
+            laplacian_blending=LAPLACIAN_BLENDING,  
             mirror=False,
         )
 
