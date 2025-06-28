@@ -25,7 +25,7 @@ from tqdm import tqdm
 
 GEN = False
 USE_SDXL = False
-REFINER = False 
+REFINER = False
 COMPOSITE = True
 TOP_BOTTOM_VIEWS = True
 IMAGE_SIZE = 1024
@@ -35,7 +35,7 @@ TOP_BOTTOM_FIRST = True
 GEN_FIRST = False
 
 GEN_TOP_BOTTOM = True
-LAPLACIAN_BLENDING = False 
+LAPLACIAN_BLENDING = False
 BLUR_BLENDING = True
 
 if GEN:
@@ -130,14 +130,14 @@ else:
     initial_pano_np = np.array(Image.open("imgs/cur_pano_initial.png"))
 
 
-#top_and_bottom_views = 
+# top_and_bottom_views =
 
 if TOP_BOTTOM_FIRST and GEN_TOP_BOTTOM:
     print("Processing top and bottom views")
     cur_pano = Image.open("imgs/cur_pano_initial.png")
     if TOP_BOTTOM_VIEWS:
         for idx, view in tqdm(enumerate(top_and_bottom_views), desc="Processing top and bottom views"):
-            if 'Bottom' in view['label']:
+            if "Bottom" in view["label"]:
                 prompt = "floor of a city town square"
             else:
                 prompt = "A Blue sky"
@@ -149,7 +149,7 @@ if TOP_BOTTOM_FIRST and GEN_TOP_BOTTOM:
 
             mask = create_mask_from_black(render_img, threshold=10)
             new_mask = mask
-            if idx == 2 : 
+            if idx == 2:
                 new_mask = fix_mask_region(mask, extension=100)
             else:
                 new_mask = fix_inpaint_mask(mask, extend_amount=20)
@@ -170,15 +170,15 @@ if TOP_BOTTOM_FIRST and GEN_TOP_BOTTOM:
             )
             image = image.resize((1024, 1024), Image.LANCZOS)
             image.save(f"imgs/render_top_bottom_out_{idx}.png")
-            
+
             if REFINER:
                 run_with_conda_env(
                     "diffusers33",
                     f"refiner.py imgs/render_top_bottom_out_{idx}.png --output_path imgs/refined_top_bottom_{idx}.png",
                 )
                 image = Image.open(f"imgs/refined_top_bottom_{idx}.png")
-            
-            if idx == 2 :
+
+            if idx == 2:
                 new_mask = None
 
             inital_pano_np = project_perspective_to_equirect(
@@ -233,7 +233,7 @@ if SIDE_VIEWS:
             extension = 100
 
         new_mask = fix_mask_region(mask, extension=extension)
-        save_mask = Image.fromarray(new_mask).convert("L") 
+        save_mask = Image.fromarray(new_mask).convert("L")
         save_mask.save(f"imgs/new_mask_{idx}.png")
         render_img = Image.fromarray(render_img).convert("RGB")
 
@@ -261,7 +261,6 @@ if SIDE_VIEWS:
             # mask
             mask_array = np.array(new_mask)
             mask_array = mask_array.astype(np.float32) / 255.0  # Normalize to 0-1
-            
 
             # Convert images to numpy arrays
             outpainted_np = np.array(image)
@@ -270,16 +269,16 @@ if SIDE_VIEWS:
             # Resize outpainted image to match mask dimensions
             outpainted_np = cv2.resize(outpainted_np, (mask_array.shape[1], mask_array.shape[0]))
             rendered_np = cv2.resize(rendered_np, (mask_array.shape[1], mask_array.shape[0]))
-            
+
             # Apply Gaussian blur to the mask array
-            mask_array = cv2.blur(mask_array, (20,20))  
-            
+            mask_array = cv2.blur(mask_array, (20, 20))
+
             # Ensure mask is in the right format for broadcasting
             maskf = cv2.merge([mask_array, mask_array, mask_array])
-            
-            composite = maskf*outpainted_np + (1-maskf)*rendered_np
-            composite = composite.clip(0,255).astype(np.uint8)
-            
+
+            composite = maskf * outpainted_np + (1 - maskf) * rendered_np
+            composite = composite.clip(0, 255).astype(np.uint8)
+
             image = Image.fromarray(composite.astype(np.uint8))
 
             image = image.resize((1024, 1024), Image.LANCZOS)
@@ -319,7 +318,7 @@ if SIDE_VIEWS:
             v_fov_deg=view["fov"],
             mask=cur_mask,  # Original mask - only project where we outpainted,
             blur_blending=BLUR_BLENDING,
-            laplacian_blending=LAPLACIAN_BLENDING,  
+            laplacian_blending=LAPLACIAN_BLENDING,
             mirror=False,
         )
 
