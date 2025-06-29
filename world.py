@@ -215,12 +215,13 @@ if SIDE_VIEWS:
                 side_view_middle_only_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
             )
             
-            
             mask = create_mask_from_black(mask_img, threshold=10)
             new_mask = mask
             if idx == 0:
                 new_mask[:180, :] = 0
                 new_mask[-100:, :] = 0
+                
+                
             else:
                 new_mask[:135, :] = 0
                 new_mask[-130:, :] = 0
@@ -228,7 +229,7 @@ if SIDE_VIEWS:
         render_img = render_perspective(
             side_view_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
         )
-        
+             
         if TOP_BOTTOM_VIEWS == False:
             mask = create_mask_from_black(render_img, threshold=10)
             new_mask = fix_inpaint_mask(mask, extend_amount=20)
