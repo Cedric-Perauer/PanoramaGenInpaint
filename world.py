@@ -222,8 +222,8 @@ if SIDE_VIEWS:
                 new_mask[:180, :] = 0
                 new_mask[-100:, :] = 0
             else:
-                new_mask[:150, :] = 0
-                new_mask[-80:, :] = 0
+                new_mask[:135, :] = 0
+                new_mask[-130:, :] = 0
     
         render_img = render_perspective(
             side_view_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
