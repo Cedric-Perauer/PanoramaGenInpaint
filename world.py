@@ -29,12 +29,12 @@ REFINER = False
 COMPOSITE = True
 TOP_BOTTOM_VIEWS = True
 IMAGE_SIZE = 1024
-SIDE_VIEWS = False
+SIDE_VIEWS = True
 cond_scale = 0.9
 TOP_BOTTOM_FIRST = True
 GEN_FIRST = False
 
-GEN_TOP_BOTTOM = True
+GEN_TOP_BOTTOM = False
 LAPLACIAN_BLENDING = False
 BLUR_BLENDING = True
 
@@ -137,7 +137,7 @@ if TOP_BOTTOM_FIRST and GEN_TOP_BOTTOM:
     cur_pano = Image.open("imgs/cur_pano_initial.png")
     if TOP_BOTTOM_VIEWS:
         for idx, view in tqdm(enumerate(top_and_bottom_views), desc="Processing top and bottom views"):
-            if "Bottom" in view["label"]:
+            if "Bottom" not in view["label"]:
                 prompt = "floor of a city town square"
             else:
                 prompt = "A Blue sky"
@@ -145,7 +145,6 @@ if TOP_BOTTOM_FIRST and GEN_TOP_BOTTOM:
             render_img = render_perspective(
                 initial_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
             )
-            # show_image_cv2(cv2.cvtColor(render_img, cv2.COLOR_BGR2RGB))
 
             mask = create_mask_from_black(render_img, threshold=10)
             new_mask = mask
@@ -204,35 +203,42 @@ else:
     side_view_pano = Image.open("imgs/cur_pano_initial.png")
 
 side_view_pano_np = np.array(side_view_pano)
-side_view_middle_only = Image.open("imgs/cur_pano_initial.png")
+side_view_middle_only = Image.open("imgs/initial_pano_center.png")
 # side_view_middle_only = Image.open("imgs/cur_pano_5.png")
 side_view_middle_only_np = np.array(side_view_middle_only)
 
-
 if SIDE_VIEWS:
     print("Processing side views")
-    for idx, view in enumerate(tqdm(side_views[1:], desc="Processing side views")):
+    for idx, view in enumerate(tqdm(side_views, desc="Processing side views")):
         if TOP_BOTTOM_VIEWS:
             mask_img = render_perspective(
                 side_view_middle_only_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
             )
+            
+            
             mask = create_mask_from_black(mask_img, threshold=10)
             new_mask = mask
-            new_mask[:150, :] = 0
-            new_mask[-80:, :] = 0
-
+            if idx == 0:
+                new_mask[:180, :] = 0
+                new_mask[-100:, :] = 0
+            else:
+                new_mask[:150, :] = 0
+                new_mask[-80:, :] = 0
+    
         render_img = render_perspective(
             side_view_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
         )
+        
         if TOP_BOTTOM_VIEWS == False:
             mask = create_mask_from_black(render_img, threshold=10)
             new_mask = fix_inpaint_mask(mask, extend_amount=20)
 
         extension = 20
-        if idx == 6:
+        if idx == 7:
             extension = 100
 
-        new_mask = fix_mask_region(mask, extension=extension)
+        if idx != 0:
+            new_mask = fix_mask_region(new_mask, extension=extension)
         save_mask = Image.fromarray(new_mask).convert("L")
         save_mask.save(f"imgs/new_mask_{idx}.png")
         render_img = Image.fromarray(render_img).convert("RGB")
@@ -256,7 +262,7 @@ if SIDE_VIEWS:
 
         image = image.resize((1024, 1024), Image.LANCZOS)
         image.save(f"imgs/render_in_{idx}.png")
-        if COMPOSITE:
+        if COMPOSITE and idx != 0:
             # Composite the outpainted image with the rendered image using the
             # mask
             mask_array = np.array(new_mask)
