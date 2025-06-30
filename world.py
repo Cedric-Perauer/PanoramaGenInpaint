@@ -19,11 +19,11 @@ from diffusion_utils import (
 )
 import torch
 from dust3r_infer import get_focals
-from image_utils import create_mask_from_black, project_perspective_to_equirect, render_perspective
+from image_utils import create_mask_from_black, project_perspective_to_equirect, render_perspective, image_to_equirectangular, focal_to_fov
 import copy
 from tqdm import tqdm
 
-GEN = False
+GEN = True 
 USE_SDXL = False
 REFINER = False
 COMPOSITE = True
@@ -31,29 +31,31 @@ TOP_BOTTOM_VIEWS = True
 IMAGE_SIZE = 1024
 SIDE_VIEWS = True
 cond_scale = 0.9
-TOP_BOTTOM_FIRST = True
-GEN_FIRST = False
+GEN_FIRST = True
 
-GEN_TOP_BOTTOM = False
 LAPLACIAN_BLENDING = False
 BLUR_BLENDING = True
+
+scene_prompt = "a photorealistic market square in 1800s stylex, without people"
 
 if GEN:
     pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-schnell", torch_dtype=torch.bfloat16)
     pipe.enable_model_cpu_offload()
-    prompt = "a town square in a city with a person standing in the center"
     image = pipe(
-        prompt,
+        scene_prompt,
         guidance_scale=0.0,
         num_inference_steps=4,
         max_sequence_length=256,
         generator=torch.Generator("cpu").manual_seed(0),
     ).images[0]
-    image.save("middle.jpg")
+    image.save("imgs/middle.jpg")
     clear_gpu_memory()
-    focals = get_focals("middle.jpg", 512)
+    focals = get_focals("imgs/middle.jpg", 512)
+    h_fov = focal_to_fov(focals[0], 512)
     source_image_cv2 = pil_to_cv2(image)
-    show_image_cv2(source_image_cv2)
+    equirectangular_image,non_wrapped = image_to_equirectangular(source_image_cv2, h_fov, 2028*4,1024*4,wrap_around=True)
+    cv2_to_pil(equirectangular_image).save("imgs/initial_pano_with_back.png")
+    cv2_to_pil(non_wrapped).save("imgs/initial_pano_center.png")                              
 
 all_views_data = vis_inpaint_strategy()
 
@@ -83,8 +85,6 @@ if GEN_FIRST:
     save_mask.save(f"new_mask_{idx}.png")
     render_img = Image.fromarray(render_img).convert("RGB")
 
-    prompt = "a photorealistic house on a market square in 1800s style, the sky region is blue with clouds"
-
     print(f"Render image shape: {render_img.size}{mask.shape}")
     render_img.save(f"imgs/render_{idx}.png")
 
@@ -98,7 +98,7 @@ if GEN_FIRST:
         render_img,
         new_mask,
         vis=True,
-        prompt=prompt,
+        prompt=scene_prompt,
         num_steps=50,
         guidance_scale=3.5,
         cond_scale=cond_scale,
@@ -132,13 +132,12 @@ else:
 
 # top_and_bottom_views =
 
-if TOP_BOTTOM_FIRST and GEN_TOP_BOTTOM:
-    print("Processing top and bottom views")
-    cur_pano = Image.open("imgs/cur_pano_initial.png")
-    if TOP_BOTTOM_VIEWS:
+print("Processing top and bottom views")
+cur_pano = Image.open("imgs/cur_pano_initial.png")
+if TOP_BOTTOM_VIEWS:
         for idx, view in tqdm(enumerate(top_and_bottom_views), desc="Processing top and bottom views"):
             if "Bottom" not in view["label"]:
-                prompt = "floor of a city town square"
+                prompt = f"floor of {scene_prompt}"
             else:
                 prompt = "A Blue sky"
 
@@ -195,7 +194,7 @@ if TOP_BOTTOM_FIRST and GEN_TOP_BOTTOM:
 
 idx = len(top_and_bottom_views) - 1
 
-if TOP_BOTTOM_FIRST:
+if TOP_BOTTOM_VIEWS:
     print("Processing side views from top bottom load")
     side_view_pano = Image.open(f"imgs/top_bottom_pano_{idx}.png")
 
@@ -244,7 +243,7 @@ if SIDE_VIEWS:
         save_mask.save(f"imgs/new_mask_{idx}.png")
         render_img = Image.fromarray(render_img).convert("RGB")
 
-        prompt = "a new photorealistic house on a market square in 1800s stylex, without people"
+        
         print(f"Render image shape: {render_img.size}{mask.shape}")
         render_img.save(f"imgs/render_{idx}.png")
 
@@ -255,7 +254,7 @@ if SIDE_VIEWS:
             render_img,
             new_mask,
             vis=True,
-            prompt=prompt,
+            prompt=scene_prompt,
             num_steps=50,
             guidance_scale=3.5,
             cond_scale=cond_scale,
