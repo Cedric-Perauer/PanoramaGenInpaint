@@ -23,20 +23,21 @@ from image_utils import create_mask_from_black, project_perspective_to_equirect,
 import copy
 from tqdm import tqdm
 
-GEN = True 
+GEN =  True
 USE_SDXL = False
 REFINER = False
 COMPOSITE = True
 TOP_BOTTOM_VIEWS = True
+GEN_TOP_BOTTOM = True
 IMAGE_SIZE = 1024
 SIDE_VIEWS = True
 cond_scale = 0.9
-GEN_FIRST = True
 
 LAPLACIAN_BLENDING = False
-BLUR_BLENDING = True
+BLUR_BLENDING = False
 
-scene_prompt = "a photorealistic market square in 1800s stylex, without people"
+scene_prompt = "a modern japanese garden with a pond and a waterfall"
+scene_prompt_sides = "a modern japanese garden "
 
 if GEN:
     pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-schnell", torch_dtype=torch.bfloat16)
@@ -68,8 +69,7 @@ left_side_nums = []
 clear_gpu_memory()
 
 pipeline = load_contolnet_pipeline()
-
-if GEN_FIRST:
+if GEN:
     print("Generating first image")
     inital_pano = Image.open("imgs/initial_pano_center.png")
     initial_pano_np = np.array(inital_pano)
@@ -134,7 +134,7 @@ else:
 
 print("Processing top and bottom views")
 cur_pano = Image.open("imgs/cur_pano_initial.png")
-if TOP_BOTTOM_VIEWS:
+if TOP_BOTTOM_VIEWS and GEN_TOP_BOTTOM:
         for idx, view in tqdm(enumerate(top_and_bottom_views), desc="Processing top and bottom views"):
             if "Bottom" not in view["label"]:
                 prompt = f"floor of {scene_prompt}"
@@ -254,7 +254,7 @@ if SIDE_VIEWS:
             render_img,
             new_mask,
             vis=True,
-            prompt=scene_prompt,
+            prompt=scene_prompt_sides,
             num_steps=50,
             guidance_scale=3.5,
             cond_scale=cond_scale,
@@ -330,3 +330,4 @@ if SIDE_VIEWS:
 
         cur_pano = cv2.cvtColor(side_view_pano_np, cv2.COLOR_BGR2RGB)
         cv2.imwrite(f"imgs/cur_pano_{idx}.png", cur_pano)
+
