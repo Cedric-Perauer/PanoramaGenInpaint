@@ -162,8 +162,6 @@ def fix_inpaint_mask(mask, contour_color=(0, 255, 0), fill_color=(0, 0, 0), exte
         largest_contour = max(contours, key=cv2.contourArea)
         cv2.drawContours(color_mask, [largest_contour], -1, contour_color, 2)
 
-    os.makedirs("imgs", exist_ok=True)
-    cv2.imwrite("imgs/mask_with_contour.png", color_mask)
 
     cv2.drawContours(mask_copy, contours, -1, 0, -1)
     if extend_amount > 0:

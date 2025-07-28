@@ -5,6 +5,7 @@ from torchvision import transforms
 from PIL import Image
 import numpy as np
 import cv2
+import argparse
 from utils import pil_to_cv2, cv2_to_pil, show_image_cv2, clear_gpu_memory, run_with_conda_env
 import copy
 from diffusion_utils import (
@@ -17,15 +18,34 @@ from diffusion_utils import (
     load_contolnet_pipeline,
     outpaint_controlnet,
 )
+
+import os
 import torch
 from dust3r_infer import get_focals
 from image_utils import create_mask_from_black, project_perspective_to_equirect, render_perspective, image_to_equirectangular, focal_to_fov
 import copy
 from tqdm import tqdm
 
+parser = argparse.ArgumentParser(description='Generate panoramic images with inpainting')
+parser.add_argument('--scene_prompt', type=str, 
+                   default="a modern japanese garden with a pond and a waterfall",
+                   help='Main scene prompt for the panorama generation')
+parser.add_argument('--scene_prompt_sides', type=str, 
+                   default="a modern japanese garden ",
+                   help='Scene prompt for side views generation')
+parser.add_argument('--sky_prompt', type=str, 
+                   default="a blue sky",
+                   help='Scene prompt for sky generation')
+parser.add_argument('--debug',type=bool,
+                   default=False,
+                   help='Debug mode to show images during processing')
+
+
+args = parser.parse_args()
+floor_prompt = f"floor of {args.scene_prompt}"
+
 GEN =  True
 USE_SDXL = False
-REFINER = False
 COMPOSITE = True
 TOP_BOTTOM_VIEWS = True
 GEN_TOP_BOTTOM = True
@@ -36,9 +56,10 @@ cond_scale = 0.9
 LAPLACIAN_BLENDING = False
 BLUR_BLENDING = False
 
-scene_prompt = "a modern japanese garden with a pond and a waterfall"
-scene_prompt_sides = "a modern japanese garden "
+scene_prompt = args.scene_prompt
+scene_prompt_sides = args.scene_prompt_sides
 
+os.makedirs('imgs', exist_ok=True)
 if GEN:
     pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-schnell", torch_dtype=torch.bfloat16)
     pipe.enable_model_cpu_offload()
@@ -82,11 +103,13 @@ if GEN:
     new_mask = fix_inpaint_mask(mask, extend_amount=100)
 
     save_mask = Image.fromarray(new_mask).convert("L")
-    save_mask.save(f"new_mask_{idx}.png")
+    if args.debug:
+        save_mask.save(f"new_mask_{idx}.png")
     render_img = Image.fromarray(render_img).convert("RGB")
 
     print(f"Render image shape: {render_img.size}{mask.shape}")
-    render_img.save(f"imgs/render_{idx}.png")
+    if args.debug:
+        render_img.save(f"imgs/render_{idx}.png")
 
     # if idx == 0:
     #    cond_scale = 0.4
@@ -105,14 +128,7 @@ if GEN:
     )
 
     image = image.resize((1024, 1024), Image.LANCZOS)
-    image.save(f"imgs/render_in_{idx}.png")
-    clear_gpu_memory()
-
-    run_with_conda_env(
-        "diffusers33", f"refiner.py imgs/render_in_{idx}.png --output_path imgs/refined_output_{idx}.png"
-    )
-    image = Image.open(f"imgs/refined_output_{idx}.png")
-
+    
     inital_pano_np = project_perspective_to_equirect(
         cv2.cvtColor(pil_to_cv2(image), cv2.COLOR_BGR2RGB),
         initial_pano_np,
@@ -137,9 +153,9 @@ cur_pano = Image.open("imgs/cur_pano_initial.png")
 if TOP_BOTTOM_VIEWS and GEN_TOP_BOTTOM:
         for idx, view in tqdm(enumerate(top_and_bottom_views), desc="Processing top and bottom views"):
             if "Bottom" not in view["label"]:
-                prompt = f"floor of {scene_prompt}"
+                prompt = floor_prompt
             else:
-                prompt = "A Blue sky"
+                prompt = args.sky_prompt
 
             render_img = render_perspective(
                 initial_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
@@ -150,12 +166,14 @@ if TOP_BOTTOM_VIEWS and GEN_TOP_BOTTOM:
             if idx == 2:
                 new_mask = fix_mask_region(mask, extension=100)
             else:
-                new_mask = fix_inpaint_mask(mask, extend_amount=20)
-            cv2_to_pil(new_mask).save(f"imgs/new_mask_{idx}.png")
+                new_mask = fix_inpaint_mask(mask, extend_amount=50)
+            if args.debug:
+                cv2_to_pil(new_mask).save(f"imgs/new_mask_{idx}.png")
             render_img = cv2.cvtColor(render_img, cv2.COLOR_BGR2RGB)
             render_img = cv2_to_pil(render_img)
             print(f"Render image shape: {render_img.size}{mask.shape}")
-            render_img.save(f"imgs/render_in_top_bottom_{idx}.png")
+            if args.debug:
+                render_img.save(f"imgs/render_in_top_bottom_{idx}.png")
             image = outpaint_controlnet(
                 pipeline,
                 render_img,
@@ -167,14 +185,9 @@ if TOP_BOTTOM_VIEWS and GEN_TOP_BOTTOM:
                 cond_scale=cond_scale,
             )
             image = image.resize((1024, 1024), Image.LANCZOS)
-            image.save(f"imgs/render_top_bottom_out_{idx}.png")
+            if args.debug:
+                image.save(f"imgs/render_top_bottom_out_{idx}.png")
 
-            if REFINER:
-                run_with_conda_env(
-                    "diffusers33",
-                    f"refiner.py imgs/render_top_bottom_out_{idx}.png --output_path imgs/refined_top_bottom_{idx}.png",
-                )
-                image = Image.open(f"imgs/refined_top_bottom_{idx}.png")
 
             if idx == 2:
                 new_mask = None
@@ -187,10 +200,11 @@ if TOP_BOTTOM_VIEWS and GEN_TOP_BOTTOM:
                 h_fov_deg=view["fov"],
                 v_fov_deg=view["fov"],
                 mask=new_mask,
-                blur_blending=BLUR_BLENDING,
+                blur_blending=True,
             )
             inital_pano = Image.fromarray(initial_pano_np).convert("RGB")
-            inital_pano.save(f"imgs/top_bottom_pano_{idx}.png")
+            if args.debug or idx == len(top_and_bottom_views) - 1:
+                inital_pano.save(f"imgs/top_bottom_pano_{idx}.png")
 
 idx = len(top_and_bottom_views) - 1
 
@@ -240,12 +254,14 @@ if SIDE_VIEWS:
         if idx != 0:
             new_mask = fix_mask_region(new_mask, extension=extension)
         save_mask = Image.fromarray(new_mask).convert("L")
-        save_mask.save(f"imgs/new_mask_{idx}.png")
+        if args.debug:
+            save_mask.save(f"imgs/new_mask_{idx}.png")
         render_img = Image.fromarray(render_img).convert("RGB")
 
         
         print(f"Render image shape: {render_img.size}{mask.shape}")
-        render_img.save(f"imgs/render_{idx}.png")
+        if args.debug:
+            render_img.save(f"imgs/render_{idx}.png")
 
         cond_scale = 0.9
 
@@ -261,7 +277,8 @@ if SIDE_VIEWS:
         )
 
         image = image.resize((1024, 1024), Image.LANCZOS)
-        image.save(f"imgs/render_in_{idx}.png")
+        if args.debug:
+            image.save(f"imgs/render_in_{idx}.png")
         if COMPOSITE and idx != 0:
             # Composite the outpainted image with the rendered image using the
             # mask
@@ -288,17 +305,11 @@ if SIDE_VIEWS:
             image = Image.fromarray(composite.astype(np.uint8))
 
             image = image.resize((1024, 1024), Image.LANCZOS)
-            image.save(f"imgs/render_in_{idx}.png")
+            if args.debug:
+                image.save(f"imgs/render_in_{idx}.png")
 
         clear_gpu_memory()
-        # if idx == 0 :
-        # if REFINER or idx == 0:
-        #    run_with_conda_env(
-        #        "diffusers33", f"refiner.py imgs/render_in_{idx}.png --output_path imgs/refined_output_{idx}.png"
-        #    )
-        #    image = Image.open(f"imgs/refined_output_{idx}.png")
-        # else :
-        #    image = Image.open(f"imgs/render_{idx}.png")
+       
 
         new_mask = np.array(new_mask)
         cur_mask = new_mask
@@ -329,5 +340,8 @@ if SIDE_VIEWS:
         )
 
         cur_pano = cv2.cvtColor(side_view_pano_np, cv2.COLOR_BGR2RGB)
-        cv2.imwrite(f"imgs/cur_pano_{idx}.png", cur_pano)
+        if args.debug:
+            cv2.imwrite(f"imgs/cur_pano_{idx}.png", cur_pano)
+            
+        cv2.imwrite(f"imgs/pano.png", cur_pano)
 
