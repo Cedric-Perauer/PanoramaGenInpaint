@@ -22,7 +22,7 @@ This implementation follows the panorama generation method described in the pape
 
 3. **Inpainting Network**: Uses a ControlNet-based inpainting model conditioned on masked input images. The inpainting network is based on [FLUX-Controlnet-Inpainting](https://github.com/alimama-creative/FLUX-Controlnet-Inpainting).
 
-4. **Refinement**: A partial denoising process is applied to improve image quality and ensure smooth transitions between inpainted regions.
+4. **Refinement**: Optionally, a partial denoising process is applied to improve image quality and ensure smooth transitions between inpainted regions.
 
 For more details, refer to the original paper: ["A Recipe for Generating 3D Worlds From a Single Image"](https://arxiv.org/abs/2503.16611) (ICCV 2025).
 
