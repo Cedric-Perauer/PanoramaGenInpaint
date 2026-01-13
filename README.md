@@ -61,3 +61,17 @@ Due to consecutive creation of multiple images to fill the the equirectangular 3
 --debug : optional mode that stores all inpainting masks, etc.
 ```
 
+
+If you find this code useful, please don't forget to cite the original paper : 
+```
+@misc{schwarz2025recipegenerating3dworlds,
+      title={A Recipe for Generating 3D Worlds From a Single Image}, 
+      author={Katja Schwarz and Denys Rozumnyi and Samuel Rota Bulò and Lorenzo Porzi and Peter Kontschieder},
+      year={2025},
+      eprint={2503.16611},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2503.16611}, 
+}
+```
+
