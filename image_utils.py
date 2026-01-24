@@ -510,12 +510,86 @@ def visualize_all_inpainting_masks(initial_panorama, side_pano, output_size=1024
     return visualization_data
 
 
+def create_feathered_blend_mask(eq_h, eq_w, fixed_eq_valid, eq_x_valid, feather_amount=30):
+    """
+    Create a smooth blend mask with feathered edges using distance transform.
+    
+    Args:
+        eq_h, eq_w: Equirectangular image dimensions
+        fixed_eq_valid, eq_x_valid: Valid pixel coordinates
+        feather_amount: Width of the feathered edge transition in pixels
+    
+    Returns:
+        Smooth blend mask with values 0-1
+    """
+    # Create binary mask of projected region
+    binary_mask = np.zeros((eq_h, eq_w), dtype=np.uint8)
+    binary_mask[fixed_eq_valid, eq_x_valid] = 255
+    
+    # Find the boundary of the projected region
+    # Erode the mask to get the "safe" interior region
+    kernel_size = max(3, feather_amount // 3)
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
+    eroded = cv2.erode(binary_mask, kernel, iterations=2)
+    
+    # Compute distance from the eroded boundary (interior distance)
+    dist_inside = cv2.distanceTransform(eroded, cv2.DIST_L2, 5)
+    
+    # Compute distance from the boundary going outward (for the exterior)
+    inverted = 255 - binary_mask
+    dist_outside = cv2.distanceTransform(inverted, cv2.DIST_L2, 5)
+    
+    # Create the blend weight: 
+    # - 1.0 in the interior (far from edges)
+    # - Smooth falloff near the edges
+    # - 0.0 outside the projected region
+    blend_mask = np.zeros((eq_h, eq_w), dtype=np.float32)
+    
+    # Interior region weights (normalized distance from edge)
+    interior_region = eroded > 0
+    if np.any(interior_region):
+        max_dist = min(feather_amount, dist_inside[interior_region].max()) if dist_inside[interior_region].max() > 0 else feather_amount
+        blend_mask[interior_region] = np.clip(dist_inside[interior_region] / max_dist, 0, 1)
+    
+    # Edge transition zone (between eroded and original mask)
+    edge_zone = (binary_mask > 0) & (eroded == 0)
+    if np.any(edge_zone):
+        # Smooth transition from 0 to the interior value
+        # Use distance from outside boundary
+        blend_mask[edge_zone] = 0.3 * (1.0 - np.clip(dist_outside[edge_zone] / feather_amount, 0, 1))
+    
+    # Apply Gaussian blur to smooth the entire mask
+    blend_mask = cv2.GaussianBlur(blend_mask, (0, 0), sigmaX=feather_amount/3, sigmaY=feather_amount/3)
+    
+    # Ensure the mask stays within the original projection bounds with soft falloff
+    blend_mask = blend_mask * (binary_mask.astype(np.float32) / 255.0 + 
+                                cv2.GaussianBlur(binary_mask.astype(np.float32) / 255.0, (0, 0), 
+                                               sigmaX=feather_amount/2, sigmaY=feather_amount/2))
+    blend_mask = np.clip(blend_mask, 0, 1)
+    
+    return blend_mask
+
+
 def project_perspective_to_equirect(
-    perspective_image, equirect_target, yaw_deg, pitch_deg, h_fov_deg, v_fov_deg, mask=None, mirror=False, wrap_x=True, laplacian_blending=False, blur_blending=False
+    perspective_image, equirect_target, yaw_deg, pitch_deg, h_fov_deg, v_fov_deg, 
+    mask=None, mirror=False, wrap_x=True, laplacian_blending=False, blur_blending=False,
+    feather_amount=30
 ):
     """
     Projects a perspective image back onto an equirectangular panorama.
     Carefully matches the exact inverse transformations of render_perspective.
+    
+    Args:
+        perspective_image: The perspective view to project
+        equirect_target: The target equirectangular panorama
+        yaw_deg, pitch_deg: Camera orientation in degrees
+        h_fov_deg, v_fov_deg: Field of view in degrees
+        mask: Optional mask to limit projection region
+        mirror: Whether to mirror the projection horizontally
+        wrap_x: Whether to wrap around the x-axis
+        laplacian_blending: Use multi-resolution Laplacian pyramid blending
+        blur_blending: Use Gaussian blur-based blending
+        feather_amount: Width of edge feathering in pixels (default: 30)
     """
     persp_h, persp_w = perspective_image.shape[:2]
     eq_h, eq_w = equirect_target.shape[:2]
@@ -615,29 +689,36 @@ def project_perspective_to_equirect(
         eq_x_valid[eq_x_valid < 0] = 0
         eq_x_valid[eq_x_valid >= eq_w] = eq_w - 1
 
-
     equirect_before = copy.deepcopy(equirect_target)
     equirect_target[fixed_eq_valid, eq_x_valid] = perspective_image[persp_v_int, persp_u_int]
+    
     if laplacian_blending:
-        mask = np.zeros((eq_h, eq_w, 1), dtype=float)
-        mask[fixed_eq_valid, eq_x_valid] = 1
-        equirect_target = perform_laplacian_blending(equirect_target, equirect_before, mask)
+        # Create a feathered mask for smooth Laplacian blending
+        blend_mask = create_feathered_blend_mask(eq_h, eq_w, fixed_eq_valid, eq_x_valid, feather_amount)
+        blend_mask_3ch = blend_mask[:, :, np.newaxis]
+        
+        equirect_target = perform_laplacian_blending(equirect_target, equirect_before, blend_mask_3ch)
         print(f"Projected {len(eq_y_valid)} pixels from perspective to equirect with yaw={yaw_deg}, pitch={pitch_deg}")
+        
     if blur_blending: 
-        mask = np.zeros((eq_h, eq_w, 1), dtype=float)
-        mask[fixed_eq_valid, eq_x_valid] = 255
+        # Create a feathered blend mask using distance transform
+        blend_mask = create_feathered_blend_mask(eq_h, eq_w, fixed_eq_valid, eq_x_valid, feather_amount)
         
-        # Apply multiple blur passes for smoother transitions
-        # First pass: large Gaussian blur for overall smoothness
-        mask = cv2.blur(mask, (50,50))
+        # Apply additional Gaussian blur for extra smoothness
+        blur_size = max(3, feather_amount) | 1  # Ensure odd
+        blend_mask = cv2.GaussianBlur(blend_mask, (blur_size * 2 + 1, blur_size * 2 + 1), 0)
+        
         # Normalize the mask
-        mask = cv2.normalize(mask, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-        cv2.imwrite("mask.png", mask)
+        if blend_mask.max() > 0:
+            blend_mask = blend_mask / blend_mask.max()
         
-        maskf = (mask/255).astype(np.float64)
-        maskf = cv2.merge([maskf,maskf,maskf])
-        equirect_target = maskf*equirect_target + (1-maskf)*equirect_before
-        equirect_target = equirect_target.clip(0,255).astype(np.uint8)
+        # Convert to 3-channel for blending
+        maskf = cv2.merge([blend_mask, blend_mask, blend_mask])
+        
+        # Perform the blend
+        equirect_target = (maskf * equirect_target.astype(np.float64) + 
+                          (1 - maskf) * equirect_before.astype(np.float64))
+        equirect_target = equirect_target.clip(0, 255).astype(np.uint8)
         
     return equirect_target
 

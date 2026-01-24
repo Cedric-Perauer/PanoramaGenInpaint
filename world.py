@@ -53,8 +53,9 @@ IMAGE_SIZE = 1024
 SIDE_VIEWS = True
 cond_scale = 0.9
 
-LAPLACIAN_BLENDING = False
+LAPLACIAN_BLENDING = True
 BLUR_BLENDING = False
+FEATHER_AMOUNT = 50  # Controls the width of edge blending transition (higher = smoother but wider)
 
 scene_prompt = args.scene_prompt
 scene_prompt_sides = args.scene_prompt_sides
@@ -103,13 +104,13 @@ if GEN:
     new_mask = fix_inpaint_mask(mask, extend_amount=100)
 
     save_mask = Image.fromarray(new_mask).convert("L")
-    if args.debug:
-        save_mask.save(f"new_mask_{idx}.png")
+    #if args.debug:
+    #    save_mask.save(f"new_mask_{idx}.png")
     render_img = Image.fromarray(render_img).convert("RGB")
 
     print(f"Render image shape: {render_img.size}{mask.shape}")
-    if args.debug:
-        render_img.save(f"imgs/render_{idx}.png")
+    #if args.debug:
+    #    render_img.save(f"imgs/render_{idx}.png")
 
     # if idx == 0:
     #    cond_scale = 0.4
@@ -167,13 +168,13 @@ if TOP_BOTTOM_VIEWS and GEN_TOP_BOTTOM:
                 new_mask = fix_mask_region(mask, extension=100)
             else:
                 new_mask = fix_inpaint_mask(mask, extend_amount=50)
-            if args.debug:
-                cv2_to_pil(new_mask).save(f"imgs/new_mask_{idx}.png")
+            #if args.debug:
+            #    cv2_to_pil(new_mask).save(f"imgs/new_mask_{idx}.png")
             render_img = cv2.cvtColor(render_img, cv2.COLOR_BGR2RGB)
             render_img = cv2_to_pil(render_img)
             print(f"Render image shape: {render_img.size}{mask.shape}")
-            if args.debug:
-                render_img.save(f"imgs/render_in_top_bottom_{idx}.png")
+            #if args.debug:
+            #    render_img.save(f"imgs/render_in_top_bottom_{idx}.png")
             image = outpaint_controlnet(
                 pipeline,
                 render_img,
@@ -201,6 +202,7 @@ if TOP_BOTTOM_VIEWS and GEN_TOP_BOTTOM:
                 v_fov_deg=view["fov"],
                 mask=new_mask,
                 blur_blending=True,
+                feather_amount=FEATHER_AMOUNT,
             )
             inital_pano = Image.fromarray(initial_pano_np).convert("RGB")
             if args.debug or idx == len(top_and_bottom_views) - 1:
@@ -254,14 +256,14 @@ if SIDE_VIEWS:
         if idx != 0:
             new_mask = fix_mask_region(new_mask, extension=extension)
         save_mask = Image.fromarray(new_mask).convert("L")
-        if args.debug:
-            save_mask.save(f"imgs/new_mask_{idx}.png")
+        #if args.debug:
+        #    save_mask.save(f"imgs/new_mask_{idx}.png")
         render_img = Image.fromarray(render_img).convert("RGB")
 
         
         print(f"Render image shape: {render_img.size}{mask.shape}")
-        if args.debug:
-            render_img.save(f"imgs/render_{idx}.png")
+        #if args.debug:
+        #    render_img.save(f"imgs/render_{idx}.png")
 
         cond_scale = 0.9
 
@@ -277,8 +279,8 @@ if SIDE_VIEWS:
         )
 
         image = image.resize((1024, 1024), Image.LANCZOS)
-        if args.debug:
-            image.save(f"imgs/render_in_{idx}.png")
+        #if args.debug:
+        #    image.save(f"imgs/render_in_{idx}.png")
         if COMPOSITE and idx != 0:
             # Composite the outpainted image with the rendered image using the
             # mask
@@ -324,6 +326,7 @@ if SIDE_VIEWS:
             blur_blending=BLUR_BLENDING,
             laplacian_blending=LAPLACIAN_BLENDING,
             mirror=False,
+            feather_amount=FEATHER_AMOUNT,
         )
 
         side_view_middle_only_np = project_perspective_to_equirect(
@@ -337,6 +340,7 @@ if SIDE_VIEWS:
             blur_blending=BLUR_BLENDING,
             laplacian_blending=LAPLACIAN_BLENDING,
             mirror=False,
+            feather_amount=FEATHER_AMOUNT,
         )
 
         cur_pano = cv2.cvtColor(side_view_pano_np, cv2.COLOR_BGR2RGB)
