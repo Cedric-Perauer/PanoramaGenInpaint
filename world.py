@@ -44,11 +44,11 @@ parser.add_argument('--debug',type=bool,
 args = parser.parse_args()
 floor_prompt = f"floor of {args.scene_prompt}"
 
-GEN =  True
+GEN =  False
 USE_SDXL = False
 COMPOSITE = False
 TOP_BOTTOM_VIEWS = True
-GEN_TOP_BOTTOM = True
+GEN_TOP_BOTTOM = False
 IMAGE_SIZE = 1024
 SIDE_VIEWS = True
 cond_scale = 0.9
@@ -285,7 +285,7 @@ if SIDE_VIEWS:
             new_mask = fix_inpaint_mask(mask, extend_amount=20)
 
         extension = 40
-        if idx == 7:
+        if idx in [6, 7]:
             extension = 200
 
         if idx != 0:
