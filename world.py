@@ -1,3 +1,4 @@
+from tkinter import TRUE
 import torch
 from diffusers import FluxPipeline
 from diffusers.utils import load_image
@@ -44,11 +45,11 @@ parser.add_argument('--debug',type=bool,
 args = parser.parse_args()
 floor_prompt = f"floor of {args.scene_prompt}"
 
-GEN =  False
+GEN = True 
 USE_SDXL = False
 COMPOSITE = False
 TOP_BOTTOM_VIEWS = True
-GEN_TOP_BOTTOM = False
+GEN_TOP_BOTTOM = True
 IMAGE_SIZE = 1024
 SIDE_VIEWS = True
 cond_scale = 0.9
