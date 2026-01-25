@@ -6,6 +6,8 @@ This code implements a traning-free 360 panorama generation pipeline via equirec
 
 This implementation follows the panorama generation method described in the paper. The approach uses a progressive inpainting strategy with equirectangular projection:
 
+<img src="assets/transition.gif" alt="My Image" width="600">
+
 ### Panorama Synthesis Process
 
 1. **Equirectangular Projection**: The input perspective image is first embedded into an equirectangular panorama by converting pixel coordinates to spherical coordinates (θ, φ) and then to equirectangular coordinates.
@@ -51,6 +53,8 @@ pip install -r requirements.txt
 ```bash
 python world.py --scene_prompt "a modern japanese garden with a pond and a waterfall" --scene_prompt_sides "a modern japanese garden " --sky_prompt "a clear blue sky"
 ```
+
+The output is then stored in imgs/ folder as pano.png 
 
 Due to consecutive creation of multiple images to fill the the equirectangular 360 layout the generation will take several minutes (multiple inference runs of the Flux-Dev Inpainting ControlNet model). 
 
