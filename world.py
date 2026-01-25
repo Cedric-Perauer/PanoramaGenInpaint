@@ -46,16 +46,17 @@ floor_prompt = f"floor of {args.scene_prompt}"
 
 GEN =  True
 USE_SDXL = False
-COMPOSITE = True
+COMPOSITE = False
 TOP_BOTTOM_VIEWS = True
-GEN_TOP_BOTTOM = True
+GEN_TOP_BOTTOM = False
 IMAGE_SIZE = 1024
 SIDE_VIEWS = True
 cond_scale = 0.9
 
-LAPLACIAN_BLENDING = True
-BLUR_BLENDING = False
-FEATHER_AMOUNT = 50  # Controls the width of edge blending transition (higher = smoother but wider)
+LAPLACIAN_BLENDING = False
+BLUR_BLENDING = True
+FEATHER_BLENDING = False
+FEATHER_AMOUNT = 30  # Feather border size in pixels
 
 scene_prompt = args.scene_prompt
 scene_prompt_sides = args.scene_prompt_sides
@@ -139,6 +140,23 @@ if GEN:
         v_fov_deg=view["fov"],
         mask=None,  # Original mask - only project where we outpainted,
         mirror=False,
+    )   
+
+    cur_pano_center = cv2.cvtColor(inital_pano_np, cv2.COLOR_BGR2RGB)
+    cv2.imwrite(f"imgs/cur_pano_initial_center.png", cur_pano_center)
+
+    # Duplicate center image to backview (side view 4 at yaw=180°)
+    # Flip the image horizontally to create a mirrored backview
+    backview_image = image.transpose(Image.FLIP_LEFT_RIGHT)
+    inital_pano_np = project_perspective_to_equirect(
+        cv2.cvtColor(pil_to_cv2(backview_image), cv2.COLOR_BGR2RGB),
+        inital_pano_np,
+        yaw_deg=180,  # Backview position (side view 4)
+        pitch_deg=view["pitch"],
+        h_fov_deg=view["fov"],
+        v_fov_deg=view["fov"],
+        mask=None,
+        mirror=False,
     )
 
     cur_pano = cv2.cvtColor(inital_pano_np, cv2.COLOR_BGR2RGB)
@@ -202,7 +220,6 @@ if TOP_BOTTOM_VIEWS and GEN_TOP_BOTTOM:
                 v_fov_deg=view["fov"],
                 mask=new_mask,
                 blur_blending=True,
-                feather_amount=FEATHER_AMOUNT,
             )
             inital_pano = Image.fromarray(initial_pano_np).convert("RGB")
             if args.debug or idx == len(top_and_bottom_views) - 1:
@@ -218,25 +235,43 @@ else:
     side_view_pano = Image.open("imgs/cur_pano_initial.png")
 
 side_view_pano_np = np.array(side_view_pano)
-side_view_middle_only = Image.open("imgs/initial_pano_center.png")
-# side_view_middle_only = Image.open("imgs/cur_pano_5.png")
+side_view_middle_only = Image.open("imgs/cur_pano_initial_center.png")
 side_view_middle_only_np = np.array(side_view_middle_only)
-
+side_views = side_views[1:]
 if SIDE_VIEWS:
     print("Processing side views")
     for idx, view in enumerate(tqdm(side_views, desc="Processing side views")):
+        idx += 1
         if TOP_BOTTOM_VIEWS:
-            mask_img = render_perspective(
+            # Render both views to determine what needs inpainting
+            mask_img_middle = render_perspective(
                 side_view_middle_only_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
             )
+            mask_img_pano = render_perspective(
+                side_view_pano_np, view["yaw"], -view["pitch"], view["fov"], view["vfov"], IMAGE_SIZE
+            )
             
-            mask = create_mask_from_black(mask_img, threshold=10)
-            new_mask = mask
+            if args.debug:
+                Image.fromarray(cv2.cvtColor(mask_img_middle, cv2.COLOR_BGR2RGB)).save(f"imgs/mask_img_middle_{idx}.png")
+                Image.fromarray(cv2.cvtColor(mask_img_pano, cv2.COLOR_BGR2RGB)).save(f"imgs/mask_img_pano_{idx}.png")
+            
+            # Create mask from middle_only (what needs to be inpainted overall)
+            mask_middle = create_mask_from_black(mask_img_middle, threshold=10)
+            # Create mask from current pano (what's still black/unfilled)
+            mask_pano = create_mask_from_black(mask_img_pano, threshold=10)
+            
+            # Only inpaint where BOTH are black (not yet generated AND in the region of interest)
+            # This prevents overlapping into already generated regions
+            new_mask = mask_middle
+            
+            if args.debug:
+                Image.fromarray(mask_middle).save(f"imgs/mask_middle_{idx}.png")
+                Image.fromarray(mask_pano).save(f"imgs/mask_pano_{idx}.png")
+                Image.fromarray(new_mask).save(f"imgs/mask_combined_{idx}.png")
+            
             if idx == 0:
                 new_mask[:180, :] = 0
                 new_mask[-100:, :] = 0
-                
-                
             else:
                 new_mask[:135, :] = 0
                 new_mask[-130:, :] = 0
@@ -249,21 +284,20 @@ if SIDE_VIEWS:
             mask = create_mask_from_black(render_img, threshold=10)
             new_mask = fix_inpaint_mask(mask, extend_amount=20)
 
-        extension = 20
+        extension = 40
         if idx == 7:
-            extension = 100
+            extension = 200
 
         if idx != 0:
             new_mask = fix_mask_region(new_mask, extension=extension)
         save_mask = Image.fromarray(new_mask).convert("L")
-        #if args.debug:
-        #    save_mask.save(f"imgs/new_mask_{idx}.png")
+        if args.debug:
+            save_mask.save(f"imgs/new_mask_{idx}.png")
         render_img = Image.fromarray(render_img).convert("RGB")
 
         
-        print(f"Render image shape: {render_img.size}{mask.shape}")
-        #if args.debug:
-        #    render_img.save(f"imgs/render_{idx}.png")
+        if args.debug:
+            render_img.save(f"imgs/render_in_{idx}.png")
 
         cond_scale = 0.9
 
@@ -307,8 +341,9 @@ if SIDE_VIEWS:
             image = Image.fromarray(composite.astype(np.uint8))
 
             image = image.resize((1024, 1024), Image.LANCZOS)
-            if args.debug:
-                image.save(f"imgs/render_in_{idx}.png")
+
+        if args.debug:
+            image.save(f"imgs/render_out_{idx}.png")
 
         clear_gpu_memory()
        
@@ -325,8 +360,9 @@ if SIDE_VIEWS:
             mask=cur_mask,  # Original mask - only project where we outpainted,
             blur_blending=BLUR_BLENDING,
             laplacian_blending=LAPLACIAN_BLENDING,
-            mirror=False,
+            feather_blending=FEATHER_BLENDING,
             feather_amount=FEATHER_AMOUNT,
+            mirror=False,
         )
 
         side_view_middle_only_np = project_perspective_to_equirect(
@@ -339,8 +375,9 @@ if SIDE_VIEWS:
             mask=cur_mask,  # Original mask - only project where we outpainted,
             blur_blending=BLUR_BLENDING,
             laplacian_blending=LAPLACIAN_BLENDING,
-            mirror=False,
+            feather_blending=FEATHER_BLENDING,
             feather_amount=FEATHER_AMOUNT,
+            mirror=False,
         )
 
         cur_pano = cv2.cvtColor(side_view_pano_np, cv2.COLOR_BGR2RGB)
