@@ -68,7 +68,7 @@ Due to consecutive creation of multiple images to fill the the equirectangular 3
 
 If you find this code useful, please don't forget to cite the original paper and the codebase :
 
-```
+```bibtex
 @misc{perauer2026panoramageninpaint,
   author = {Perauer, Cedric},
   title = {PanoramaGenInpaint: Panorama Generation with Inpainting Models based on "A Recipe for Generating 3D Worlds From a Single Image"},
@@ -80,7 +80,7 @@ If you find this code useful, please don't forget to cite the original paper and
 ```
 
 
-```
+```bibtex
 @misc{schwarz2025recipegenerating3dworlds,
       title={A Recipe for Generating 3D Worlds From a Single Image}, 
       author={Katja Schwarz and Denys Rozumnyi and Samuel Rota Bulò and Lorenzo Porzi and Peter Kontschieder},
