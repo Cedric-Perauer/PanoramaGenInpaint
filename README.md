@@ -66,7 +66,20 @@ Due to consecutive creation of multiple images to fill the the equirectangular 3
 ```
 
 
-If you find this code useful, please don't forget to cite the original paper : 
+If you find this code useful, please don't forget to cite the original paper and the codebase :
+
+```
+@misc{perauer2026panoramageninpaint,
+  author = {Perauer, Cedric},
+  title = {PanoramaGenInpaint: Panorama Generation with Inpainting Models based on "A Recipe for Generating 3D Worlds From a Single Image"},
+  year = {2026},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  howpublished = {\url{https://github.com/Cedric-Perauer/PanoramaGenInpaint}}
+}
+```
+
+
 ```
 @misc{schwarz2025recipegenerating3dworlds,
       title={A Recipe for Generating 3D Worlds From a Single Image}, 
